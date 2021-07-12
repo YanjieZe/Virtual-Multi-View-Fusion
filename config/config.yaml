@@ -1,0 +1,8 @@
+dataset:
+  path: /data/ScanNetV2
+
+render:
+  img_size: 256
+  camera_dist: 3
+  elevation: 0
+  azim_angle: 0
