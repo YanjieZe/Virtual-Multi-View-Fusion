@@ -4,7 +4,6 @@ dataset:
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
   image_form: color
-
 render:
   img_size: 256
   camera_dist: 3

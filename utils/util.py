@@ -3,7 +3,7 @@ import csv
 try:
     import numpy as np
 except:
-    print "Failed to import numpy package."
+    print ("Failed to import numpy package.")
     sys.exit(-1)
 try:
     import imageio
@@ -37,7 +37,7 @@ def read_label_mapping(filename, label_from='raw_category', label_to='nyu40id'):
         for row in reader:
             mapping[row[label_from]] = int(row[label_to])
     # if ints convert 
-    if represents_int(mapping.keys()[0]):
+    if represents_int(list(mapping.keys())[0]):
         mapping = {int(k):v for k,v in mapping.items()}
     return mapping
 

@@ -20,7 +20,7 @@ import inspect
 try:
     import numpy as np
 except:
-    print "Failed to import numpy package."
+    print("Failed to import numpy package.")
     sys.exit(-1)
 try:
     import imageio
@@ -34,17 +34,11 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 import util
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--input_instance_file', required=True, help='path to input instance image')
-parser.add_argument('--input_label_file', required=True, help='path to corresponding label image')
-parser.add_argument('--label_map_file', required=True, help='path to scannet-labels.combined.tsv')
-parser.add_argument('--output_file', required=True, help='output image file')
-opt = parser.parse_args()
 
 
 def map_label_image(image, label_mapping):
     mapped = np.copy(image)
-    for k,v in label_mapping.iteritems():
+    for k,v in label_mapping.items():
         mapped[image==k] = v
     return mapped.astype(np.uint8)
 
@@ -71,6 +65,16 @@ def get_labels_from_instance(instance_image):
     labels = instance_image // 1000
     return labels.astype(np.uint8)
 
+def convert_instance_image(label_map_file, input_instance_file, input_label_file):
+    """
+    Input: map file, instance file, label file
+    """
+    instance_image = np.array(imageio.imread(input_instance_file))
+    label_image = np.array(imageio.imread(input_label_file))
+    label_map = util.read_label_mapping(label_map_file, label_from='id', label_to='nyu40id')
+    mapped_label = map_label_image(label_image, label_map)
+    output_instance_image = make_instance_image(mapped_label, instance_image)
+    return output_instance_image
 
 def main():
     instance_image = np.array(imageio.imread(opt.input_instance_file))

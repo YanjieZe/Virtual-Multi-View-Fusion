@@ -5,10 +5,15 @@ import os
 from PIL import Image
 from torchvision.transforms import transforms
 import sys
-
+import hydra
+from convert_scannet_instance_image import convert_instance_image
 
 class ImageDataset(data.Dataset):
-    def __init__(self, root_path, scene_id, image_form='color', transform=None):
+    def __init__(self, cfg, root_path, scene_id, transform=None):
+
+        self.cfg = cfg
+
+        image_form = cfg.dataset.image_form
         if image_form!='color' and image_form!='depth':
             raise Exception("Param Error: Only Support <color>/<depth> form")
         
@@ -44,37 +49,57 @@ class ImageDataset(data.Dataset):
         instance_label_name = os.path.join(self.instance_path, self.instance_list[index])
         label_name = os.path.join(self.label_path, self.label_list[index])
 
+        # read img
         img = Image.open(image_name)
         img = self.transform(img)
 
-        instance_label = Image.open(instance_label_name)
-        instance_label = self.transform(instance_label)
 
+        # read full semantic label
         label_img = Image.open(label_name)
         label_img = self.transform(label_img)
-        return img, instance_label, label_img
+
+        # convert instance image, since the original form can not be used directly
+        instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
+        
+        return {'img':img, 'instance_label':instance_label, 'semantic label':label_img}
 
     
 class RealviewScannetDataset(data.Dataset):
-    def __init__(self, root_path='/data/ScanNetV2/scans', mode='train'):
-        
-        self.root_path = root_path
+    def __init__(self, cfg, mode='train'):
+
+        self.cfg = cfg
+
+        if mode=='train':
+            self.root_path = cfg.dataset.train_path
+        elif mode=='test':
+            self.root_path = cfg.dataset.test_path
+        else:
+            raise Exception("Mode Error: Only Train/Test Supported")
+
         self.mode = mode
-        self.dir_list = os.listdir(root_path)
-    
+        self.dir_list = os.listdir(self.root_path)
+        
+
     def __len__(self):
         return len(self.dir_list)
     
     def __getitem__(self, index):
         scene_id = self.dir_list[index]
 
-        color_imgset = ImageDataset(self.root_path, scene_id, 'color') # RGB image
+        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id, 'color') # RGB image
 
         return color_imgset
 
 
+@hydra.main(config_path="../config", config_name="config")
+def main(cfg):
+    
+    dataset = RealviewScannetDataset(cfg)
+    print(dataset[0][0][1])
+
 if __name__=='__main__':
-    dataset = RealviewScannetDataset()
-    print(dataset[0][0][2])
+    main()
+    
+    
 
         
