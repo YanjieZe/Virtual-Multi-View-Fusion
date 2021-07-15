@@ -6,7 +6,10 @@ from PIL import Image
 from torchvision.transforms import transforms
 import sys
 import hydra
-from convert_scannet_instance_image import convert_instance_image
+try:
+    from convert_scannet_instance_image import convert_instance_image
+except:
+    from utils.convert_scannet_instance_image import convert_instance_image
 
 class ImageDataset(data.Dataset):
     def __init__(self, cfg, root_path, scene_id, transform=None):

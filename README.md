@@ -44,3 +44,8 @@ Success in a new enviroment **pytorch3d**.
 |-- <scanId>_2d-instance-filt.zip
     Filtered 2d projections of aggregated annotation instances as 8-bit pngs
 ```
+
+# Related Work
+1. [Multi Virtual-View Fusion](https://arxiv.org/abs/2007.13138)
+2. [ScanNet](https://github.com/ScanNet/ScanNet)
+3. [DeepLabV3+](https://github.com/jfzhang95/pytorch-deeplab-xception)

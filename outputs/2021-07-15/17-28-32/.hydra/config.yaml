@@ -4,19 +4,14 @@ dataset:
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
   image_form: color
-  real_view: True # this means we use real view, not virtual view
-
-
+  real_view: true
 model:
   model_name: deeplabv3+
   backbone: xception
-  pretrain: False
+  pretrain: false
   pretrained_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/???
-  # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
   num_classes: 40
   output_stride: 16
-
-
 render:
   img_size: 256
   camera_dist: 3
