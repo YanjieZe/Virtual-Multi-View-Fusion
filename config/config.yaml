@@ -7,17 +7,25 @@ dataset:
   real_view: True # this means we use real view, not virtual view
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
-device: "cuda:1"
+device: "cuda:0"
 
   
 model:
-  model_name: deeplabv3+
+  model_name: deeplabv3+ # choice: unet, deeplabv3+
+
+  # --------------if model is deeplabv3+------------------#
   backbone: xception # choice: resnet, drn, mobilenet, xception
+  # ------------------------------------------------------#
+
   pretrain: False
   pretrained_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/???
   # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
-  num_classes: 40
+  num_classes: 41
   output_stride: 16
+  num_channels: 3
+
+
+  
 
 optimizer:
   name: Adam

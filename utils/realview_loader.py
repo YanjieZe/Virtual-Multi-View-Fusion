@@ -29,12 +29,13 @@ def collate_image(batch):
     for i in range(len(batch)):
         if i==0:
             img = batch[0]['img'].unsqueeze(0)
-            instance_label = batch[0]['instance_label'].unsqueeze(0)
-            semantic_label = batch[0]['semantic_label'].unsqueeze(0)
+            instance_label = batch[0]['instance_label']
+            semantic_label = batch[0]['semantic_label']
+            
         else:
             img = torch.vstack([img, batch[i]['img'].unsqueeze(0)])
-            instance_label = torch.vstack([instance_label, batch[i]['instance_label'].unsqueeze(0)])
-            semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label'].unsqueeze(0)])
+            instance_label = torch.vstack([instance_label, batch[i]['instance_label']])
+            semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label']])
     grouping = dict()
     grouping['img'] = img
     grouping['instance_label'] = instance_label
@@ -77,9 +78,13 @@ class ImageDataset(data.Dataset):
         self.instance_list = os.listdir(self.instance_path)
         self.label_list = os.listdir(self.label_path)
 
-        self.transform = transforms.Compose(
-            [transforms.ToTensor()]
-        )
+        self.transform = transforms.Compose([
+            transforms.Resize((128, 128)),  # 缩放
+            #transforms.RandomCrop(32, padding=4),  # 随机裁剪
+            transforms.ToTensor(),  
+            #transforms.Normalize(0., 1.),  # 标准化均值为0标准差为1
+            ])
+
 
     def __len__(self):
         return len(self.img_list)
@@ -91,15 +96,15 @@ class ImageDataset(data.Dataset):
 
         # read img
         img = Image.open(image_name)
-        img = self.transform(np.array(img))
+        img = self.transform(img)
 
         # read full semantic label
         semantic_label = Image.open(label_name)
-        semantic_label = self.transform(np.array(semantic_label))
+        semantic_label = self.transform(semantic_label)
 
         # convert instance image, since the original form can not be used directly
         instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
-        instance_label = torch.from_numpy(instance_label.astype(np.int64))
+        instance_label = torch.from_numpy(instance_label.astype(np.int16))
 
         return {'img':img, 'instance_label':instance_label, 'semantic_label':semantic_label}
         

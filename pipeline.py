@@ -6,6 +6,7 @@ import hydra
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.virtualview_loader import VirtualviewScannetDataset
 from modeling.deeplab import DeepLab
+from unet import UNet
 
 class Pipeline:
     """
@@ -15,20 +16,26 @@ class Pipeline:
         self.cfg = cfg
     
     def train(self):
+        
         # get device (cuda or cpu)
         device = self.get_device()
 
         # first, get a collection of different scenes
         scene_dataset = self.get_scene_dataset()
+
+        # model
         model = self.get_model().to(device)
 
+        # optimizer
         optimizer = None
         lr = self.cfg.optimizer.learning_rate
         if self.cfg.optimizer.name == 'Adam':
             optimizer = optim.Adam(model.parameters(), lr=lr, 
                 weight_decay=self.cfg.optimizer.weight_decay)
         
-        
+        # loss function
+        loss_function = torch.nn.CrossEntropyLoss()
+
         model.train()
 
         num_epoch = self.cfg.num_epoch
@@ -43,14 +50,19 @@ class Pipeline:
                     num_workers=self.cfg.data_loader.num_workers,
                     collate_fn=collate_image)
 
-                for idx, batch in enumerate(image_dataloader):
+                for idx, batch in enumerate(image_dataloader): # loop over image
+                    torch.cuda.empty_cache()
                     img = batch['img'].to(device)
                     semantic_label = batch['semantic_label'].to(device)
                     #instance_label = batch['instance_label'].to(device)
-                    
+                    import pdb; pdb.set_trace()
                     pred = model(img)
-                    print(pred.shape)
+                    loss = loss_function(pred, semantic_label.long())
+                    
+
                     optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
                     
 
     def get_scene_dataset(self):
@@ -63,15 +75,25 @@ class Pipeline:
 
 
     def get_model(self):
-        backbone = self.cfg.model.backbone
-        num_classes = self.cfg.model.num_classes
-        output_stride = self.cfg.model.output_stride
-        model = DeepLab(backbone=backbone, num_classes=num_classes, 
-                        output_stride=output_stride)
+        # load model
+        if self.cfg.model.model_name=='deeplabv3+':
+            backbone = self.cfg.model.backbone
+            num_classes = self.cfg.model.num_classes
+            output_stride = self.cfg.model.output_stride
+            model = DeepLab(backbone=backbone, num_classes=num_classes, 
+                            output_stride=output_stride)
+        elif self.cfg.model.model_name=='unet':
+            num_channels = self.cfg.model.num_channels
+            num_classes = self.cfg.model.num_classes
+            model = UNet(n_channels=num_channels, n_classes=num_classes)
+
+        # load pretrained model
         if self.cfg.model.pretrain:
             pretrain_path = self.cfg.model.pretrained_model_path
             model.load_state_dict(torch.load(pretrain_path))
+        
         return model
+
 
     def get_device(self):
         device = None
