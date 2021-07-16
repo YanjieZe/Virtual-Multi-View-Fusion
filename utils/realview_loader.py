@@ -11,7 +11,29 @@ try:
 except:
     from utils.convert_scannet_instance_image import convert_instance_image
 
+def collate_image(batch):
+    """
+    A rewrite for data loader's collate_fn
+    Return: img, instance label, semantic label
+    """
+    if len(batch)==1:
+        
+        batch[0]['img'] = batch[0]['img'].unsqueeze(0)
+        batch[0]['instance_label'] = batch[0]['instance_label'].unsqueeze(0)
+        batch[0]['semantic_label'] = batch[0]['semantic_label'].unsqueeze(0)
+        return batch[0]
+    for i in range(len(batch)):
+        break
+
+    
+    
+    
+
+
 class ImageDataset(data.Dataset):
+    """
+    Dataset consist of Images in one Scene
+    """
     def __init__(self, cfg, root_path, scene_id, transform=None):
 
         self.cfg = cfg
@@ -58,16 +80,19 @@ class ImageDataset(data.Dataset):
 
 
         # read full semantic label
-        label_img = Image.open(label_name)
-        label_img = self.transform(label_img)
+        semantic_label = Image.open(label_name)
+        semantic_label = self.transform(semantic_label)
 
         # convert instance image, since the original form can not be used directly
         instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
         
-        return {'img':img, 'instance_label':instance_label, 'semantic label':label_img}
-
+        return {'img':img, 'instance_label':instance_label, 'semantic_label':semantic_label}
+        
     
 class RealviewScannetDataset(data.Dataset):
+    """
+    Dataset of Scenes
+    """
     def __init__(self, cfg, mode='train'):
 
         self.cfg = cfg
@@ -89,7 +114,7 @@ class RealviewScannetDataset(data.Dataset):
     def __getitem__(self, index):
         scene_id = self.dir_list[index]
 
-        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id, 'color') # RGB image
+        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id) # RGB image
 
         return color_imgset
 

@@ -7,3 +7,9 @@ data/
 *.tsv
 
 *.pth
+
+outputs/
+
+utils/__pycache__/
+
+utils/outputs/

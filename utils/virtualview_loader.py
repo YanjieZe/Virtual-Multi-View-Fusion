@@ -6,7 +6,7 @@ class VirtualviewScannetDataset(data.Dataset):
     """
     to be finished
     """
-    def __init__(self, cfg):
+    def __init__(self, cfg, mode='train'):
         self.cfg = cfg
     
     def __len__(self):

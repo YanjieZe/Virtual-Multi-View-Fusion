@@ -46,6 +46,6 @@ Success in a new enviroment **pytorch3d**.
 ```
 
 # Related Work
-1. [Multi Virtual-View Fusion](https://arxiv.org/abs/2007.13138)
+1. [Virtual Multi-view Fusion](https://arxiv.org/abs/2007.13138)
 2. [ScanNet](https://github.com/ScanNet/ScanNet)
 3. [DeepLabV3+](https://github.com/jfzhang95/pytorch-deeplab-xception)
