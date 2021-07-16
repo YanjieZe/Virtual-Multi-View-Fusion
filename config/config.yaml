@@ -7,6 +7,7 @@ dataset:
   real_view: True # this means we use real view, not virtual view
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
+
 device: "cuda:0"
 
   
@@ -20,12 +21,11 @@ model:
   pretrain: False
   pretrained_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/???
   # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
-  num_classes: 41
+  num_classes: 21
   output_stride: 16
   num_channels: 3
+  save_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/
 
-
-  
 
 optimizer:
   name: Adam
@@ -43,3 +43,12 @@ render:
   camera_dist: 3
   elevation: 0
   azim_angle: 0
+
+# Here are classes used in the benchmark
+# we set background and other furnitures as one class
+benchmark_labels: ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'bookshelf', 'picture', 'counter', 'desk', 'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink', 'bathtub', 'otherfurniture']
+valid_class_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
+
+visdom:
+  use: True
+  env: YanjieZe

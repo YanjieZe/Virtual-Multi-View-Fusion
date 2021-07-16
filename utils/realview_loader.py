@@ -27,23 +27,27 @@ def collate_image(batch):
     semantic_label = None
     instance_label = None
     for i in range(len(batch)):
+        
         if i==0:
             img = batch[0]['img'].unsqueeze(0)
-            instance_label = batch[0]['instance_label']
-            semantic_label = batch[0]['semantic_label']
+            instance_label = batch[0]['instance_label'].unsqueeze(0)
+            semantic_label = batch[0]['semantic_label'].unsqueeze(0)
             
         else:
             img = torch.vstack([img, batch[i]['img'].unsqueeze(0)])
-            instance_label = torch.vstack([instance_label, batch[i]['instance_label']])
-            semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label']])
+            instance_label = torch.vstack([instance_label, batch[i]['instance_label'].unsqueeze(0)])
+            semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label'].unsqueeze(0)])
+        
+    
     grouping = dict()
     grouping['img'] = img
     grouping['instance_label'] = instance_label
     grouping['semantic_label'] = semantic_label
-
+    
     return grouping
 
-    
+ 
+
     
 
 class ImageDataset(data.Dataset):
@@ -81,10 +85,11 @@ class ImageDataset(data.Dataset):
         self.transform = transforms.Compose([
             transforms.Resize((128, 128)),  # 缩放
             #transforms.RandomCrop(32, padding=4),  # 随机裁剪
-            transforms.ToTensor(),  
+            # transforms.ToTensor(),  
             #transforms.Normalize(0., 1.),  # 标准化均值为0标准差为1
             ])
 
+        self.mapping = self.get_vaild_class_mapping()
 
     def __len__(self):
         return len(self.img_list)
@@ -97,18 +102,48 @@ class ImageDataset(data.Dataset):
         # read img
         img = Image.open(image_name)
         img = self.transform(img)
-
+        img = torch.from_numpy(np.array(img).astype(np.float32).transpose(2,0,1))
+        
         # read full semantic label
         semantic_label = Image.open(label_name)
         semantic_label = self.transform(semantic_label)
+        semantic_label = torch.from_numpy(np.array(semantic_label))
+        
 
         # convert instance image, since the original form can not be used directly
         instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
         instance_label = torch.from_numpy(instance_label.astype(np.int16))
-
-        return {'img':img, 'instance_label':instance_label, 'semantic_label':semantic_label}
         
-    
+        # get benchmark semantic label
+        valid_class_id = self.cfg.valid_class_ids
+        mask = torch.zeros_like(semantic_label).bool()
+        for class_id in valid_class_id:
+            mask = mask | (semantic_label==class_id)
+
+        semantic_label_ = torch.zeros_like(semantic_label)
+        semantic_label_[mask] = semantic_label[mask]
+        semantic_label = semantic_label_
+
+        def idx_map(idx):
+            return self.mapping[idx]
+        
+        semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label))))
+       
+        return {'img':img, 'instance_label':instance_label, 'semantic_label':semantic_label.long()}
+        
+    def get_vaild_class_mapping(self):
+        valid_class_ids = self.cfg.valid_class_ids
+        max_id = valid_class_ids[-1]
+        mapping = np.ones(max_id+1)*valid_class_ids.index(max_id)
+        
+        for i in range(max_id+1):
+            if i in valid_class_ids:
+                mapping[i] = valid_class_ids.index(i)
+            else:
+                mapping[i] = valid_class_ids.index(max_id)
+
+        return mapping
+        
 class RealviewScannetDataset(data.Dataset):
     """
     Dataset of Scenes

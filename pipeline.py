@@ -3,11 +3,12 @@ import torch
 import torch.optim as optim
 import torch.utils.data as data
 import hydra
+import numpy as np
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.virtualview_loader import VirtualviewScannetDataset
 from modeling.deeplab import DeepLab
 from unet import UNet
-
+from visdom import Visdom
 class Pipeline:
     """
     Yet another pipeline
@@ -38,6 +39,11 @@ class Pipeline:
 
         model.train()
 
+        # visualize curve
+        if self.cfg.visdom.use:
+            viz = Visdom(env=self.cfg.visdom.env)
+
+
         num_epoch = self.cfg.num_epoch
         for epoch in range(num_epoch): 
 
@@ -51,19 +57,34 @@ class Pipeline:
                     collate_fn=collate_image)
 
                 for idx, batch in enumerate(image_dataloader): # loop over image
-                    torch.cuda.empty_cache()
+                    
+                    # torch.cuda.empty_cache()
+
                     img = batch['img'].to(device)
                     semantic_label = batch['semantic_label'].to(device)
                     #instance_label = batch['instance_label'].to(device)
-                    import pdb; pdb.set_trace()
-                    pred = model(img)
-                    loss = loss_function(pred, semantic_label.long())
-                    
 
+                    pred = model(img)
+                    
+                    loss = loss_function(pred, semantic_label)
+                    
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
-                    
+                    if idx%10==0:
+                        if self.cfg.visdom.use:
+                            viz.line(
+                                X = np.array([idx]),
+                                Y = np.array([loss.item()]),
+                                win = 'epoch%d'%epoch,
+                                opts= dict(title = 'epoch%d'%epoch),
+                                update = 'append')
+
+            self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
+
+    def save_model(self, model, model_name):
+        save_path = os.path.join(self.cfg.model.save_model_path, model_name+'.pth')
+        torch.save(model.state_dict(), save_path)
 
     def get_scene_dataset(self):
         if self.cfg.dataset.real_view: # use real view
@@ -103,9 +124,7 @@ class Pipeline:
             device = torch.device('cpu')
         return device
             
-        
-    
-    
+
 
 @hydra.main(config_path="config", config_name="config")
 def main(cfg):
