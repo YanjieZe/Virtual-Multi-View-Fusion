@@ -46,7 +46,12 @@ class Pipeline:
                 for idx, batch in enumerate(image_dataloader):
                     img = batch['img'].to(device)
                     semantic_label = batch['semantic_label'].to(device)
-                    print(idx)
+                    #instance_label = batch['instance_label'].to(device)
+                    
+                    pred = model(img)
+                    print(pred.shape)
+                    optimizer.zero_grad()
+                    
 
     def get_scene_dataset(self):
         if self.cfg.dataset.real_view: # use real view

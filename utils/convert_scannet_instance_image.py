@@ -75,6 +75,7 @@ def convert_instance_image(label_map_file, input_instance_file, input_label_file
     instance_image = np.array(imageio.imread(input_instance_file))
     label_image = np.array(imageio.imread(input_label_file))
     label_map = util.read_label_mapping(label_map_file, label_from='id', label_to='nyu40id')
+    
     mapped_label = map_label_image(label_image, label_map)
     output_instance_image = make_instance_image(mapped_label, instance_image)
     return output_instance_image
