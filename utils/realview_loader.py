@@ -81,8 +81,10 @@ class ImageDataset(data.Dataset):
         self.pose_path = os.path.join(self.root_path, self.scene_id, 'exported', 'pose')       
         
         # unzip file
+        
         if not os.path.exists(self.label_path):
             zip_file_path = os.path.join(self.root_path, self.scene_id, '%s_2d-label-filt.zip'%(self.scene_id))
+            
             os.system('unzip %s'%(zip_file_path))
         if not os.path.exists(self.instance_path):
             zip_file_path = os.path.join(self.root_path, self.scene_id, '%s_2d-instance-filt.zip'%(self.scene_id))
