@@ -48,7 +48,7 @@ class Pipeline:
         for epoch in range(num_epoch): 
 
             for scene_id in range(len(scene_dataset)): # loop over scenes
-                image_dataset = scene_dataset[scene_id]['color_imgset']
+                image_dataset = scene_dataset[scene_id]['imgset']
                 image_dataloader = data.DataLoader(
                     dataset=image_dataset,
                     batch_size=self.cfg.data_loader.batch_size,
@@ -60,7 +60,7 @@ class Pipeline:
                     
                     # torch.cuda.empty_cache()
 
-                    img = batch['img'].to(device)
+                    img = batch['color_img'].to(device)
                     semantic_label = batch['semantic_label'].to(device)
                     #instance_label = batch['instance_label'].to(device)
 

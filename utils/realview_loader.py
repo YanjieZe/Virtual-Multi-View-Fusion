@@ -20,56 +20,66 @@ def collate_image(batch):
     """
     if len(batch)==1:
         
-        batch[0]['img'] = batch[0]['img'].unsqueeze(0)
+        batch[0]['color_img'] = batch[0]['color_img'].unsqueeze(0)
+        batch[0]['depth_img'] = label[0]['depth_img'].unsqueeze(0)
         batch[0]['instance_label'] = batch[0]['instance_label'].unsqueeze(0)
         batch[0]['semantic_label'] = batch[0]['semantic_label'].unsqueeze(0)
+        batch[0]['pose_matrix'] = batch[0]['pose_matrix'].unsqueeze(0)
         return batch[0]
 
     img = None
+    depth_img = None
     semantic_label = None
     instance_label = None
+    pose_matrix = None
     for i in range(len(batch)):
         
         if i==0:
-            img = batch[0]['img'].unsqueeze(0)
+
+            img = batch[0]['color_img'].unsqueeze(0)
+            depth_img = batch[0]['depth_img'].unsqueeze(0)
             instance_label = batch[0]['instance_label'].unsqueeze(0)
             semantic_label = batch[0]['semantic_label'].unsqueeze(0)
-            
+            pose_matrix = batch[0]['pose_matrix'].unsqueeze(0)
+
         else:
-            img = torch.vstack([img, batch[i]['img'].unsqueeze(0)])
+
+            img = torch.vstack([img, batch[i]['color_img'].unsqueeze(0)])
+            depth_img = torch.vstack([depth_img, batch[i]['depth_img'].unsqueeze(0)])
             instance_label = torch.vstack([instance_label, batch[i]['instance_label'].unsqueeze(0)])
             semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label'].unsqueeze(0)])
-        
+            pose_matrix = torch.vstack([pose_matrix, batch[i]['pose_matrix'].unsqueeze(0)])
     
+
     grouping = dict()
-    grouping['img'] = img
+    grouping['color_img'] = img
+    grouping['depth_img'] = depth_img
     grouping['instance_label'] = instance_label
     grouping['semantic_label'] = semantic_label
-    
+    grouping['pose_matrix'] = pose_matrix
+ 
     return grouping
 
- 
-    
+   
 
 class ImageDataset(data.Dataset):
     """
     Dataset consist of Images in one Scene
     """
-    def __init__(self, cfg, root_path, scene_id, transform=None, image_form='color'):
+    def __init__(self, cfg, root_path, scene_id, transform=None):
 
         self.cfg = cfg
-
-        
-        if image_form!='color' and image_form!='depth':
-            raise Exception("Param Error: Only Support <color>/<depth> form")
         
         self.root_path = root_path
         self.scene_id = scene_id
 
-        self.image_path = os.path.join(self.root_path, self.scene_id, 'exported',image_form)
+        # several paths
+        self.color_image_path = os.path.join(self.root_path, self.scene_id, 'exported','color')
+        self.depth_image_path = os.path.join(self.root_path, self.scene_id, 'exported','depth')
         self.instance_path = os.path.join(self.root_path, self.scene_id, 'instance-filt')
         self.label_path = os.path.join(self.root_path, self.scene_id, 'label-filt')       
-
+        self.pose_path = os.path.join(self.root_path, self.scene_id, 'exported', 'pose')       
+        
         # unzip file
         if not os.path.exists(self.label_path):
             zip_file_path = os.path.join(self.root_path, self.scene_id, '%s_2d-label-filt.zip'%(self.scene_id))
@@ -79,9 +89,11 @@ class ImageDataset(data.Dataset):
             os.system('unzip %s'%(zip_file_path))
 
         # store the file name of the images
-        self.img_list = os.listdir(self.image_path)
+        self.color_img_list = os.listdir(self.color_image_path)
+        self.depth_img_list = os.listdir(self.depth_image_path)
         self.instance_list = os.listdir(self.instance_path)
         self.label_list = os.listdir(self.label_path)
+        self.pose_list = os.listdir(self.pose_path)
 
         self.transform = transforms.Compose([
             transforms.Resize((128, 128)),  # 缩放
@@ -93,18 +105,33 @@ class ImageDataset(data.Dataset):
         self.mapping = self.get_vaild_class_mapping()
 
     def __len__(self):
-        return len(self.img_list)
+        return len(self.color_img_list)
     
     def __getitem__(self, index):
-        image_name = os.path.join(self.image_path, self.img_list[index])
+        # id check
+        color_id = self.color_img_list[index].replace('.jpg', '')
+        depth_id = self.depth_img_list[index].replace('.png', '')
+        if color_id!=depth_id:
+            raise Exception("ID Error: Color Image and Depth Image not match")
+        
+        # get path
+        color_image_name = os.path.join(self.color_image_path, self.color_img_list[index])
+        depth_image_name = os.path.join(self.depth_image_path, self.depth_img_list[index])
         instance_label_name = os.path.join(self.instance_path, self.instance_list[index])
         label_name = os.path.join(self.label_path, self.label_list[index])
-
-        # read img
-        img = Image.open(image_name)
+        pose_file_name = os.path.join(self.pose_path, self.pose_list[index])
+       
+        # read color img
+        img = Image.open(color_image_name)
         img = self.transform(img)
         img = torch.from_numpy(np.array(img).astype(np.float32).transpose(2,0,1))
         
+        # read depth img
+        depth_img = Image.open(depth_image_name)
+        depth_img = self.transform(depth_img)
+        depth_img = np.array(depth_img)
+        depth_img = torch.from_numpy(depth_img)
+
         # read full semantic label
         semantic_label = Image.open(label_name)
         semantic_label = self.transform(semantic_label)
@@ -128,9 +155,17 @@ class ImageDataset(data.Dataset):
         def idx_map(idx):
             return self.mapping[idx]
         
-        semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label))))
-       
-        return {'img':img, 'instance_label':instance_label, 'semantic_label':semantic_label.long()}
+        semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label)))).long()
+
+        # get pose
+        pose_matrix = self.get_pose_matrix(pose_file_name)
+
+
+        return {'color_img': img, 
+                'depth_img': depth_img,
+                'pose_matrix': pose_matrix,
+                'instance_label': instance_label, 
+                'semantic_label': semantic_label}
         
     def get_vaild_class_mapping(self):
         valid_class_ids = self.cfg.valid_class_ids
@@ -144,7 +179,18 @@ class ImageDataset(data.Dataset):
                 mapping[i] = valid_class_ids.index(max_id)
 
         return mapping
-        
+
+
+    def get_pose_matrix(self, pose_file_name):
+        """
+        read the pose matrix in file *.txt
+        """
+        with open(pose_file_name, 'r') as f:
+            matrix = [[float(num) for num in line.split(' ')] for line in f]
+        matrix = torch.from_numpy(np.array(matrix))
+        return matrix
+             
+
 class RealviewScannetDataset(data.Dataset):
     """
     Dataset of Scenes
@@ -163,6 +209,7 @@ class RealviewScannetDataset(data.Dataset):
         self.mode = mode
         self.dir_list = os.listdir(self.root_path)
         
+        self.mapping = self.get_vaild_class_mapping()
 
     def __len__(self):
         return len(self.dir_list)
@@ -170,11 +217,8 @@ class RealviewScannetDataset(data.Dataset):
     def __getitem__(self, index):
         scene_id = self.dir_list[index]
 
-        # get color images
-        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id, image_form='color') # RGB image
-
-        # get depth images
-        depth_imgset = ImageDataset(self.cfg, self.root_path, scene_id, image_form='depth') # depth image
+        # get images, including color and depth
+        imgset = ImageDataset(self.cfg, self.root_path, scene_id) 
         
         # get mesh
         mesh_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.ply"%(scene_id))
@@ -187,18 +231,45 @@ class RealviewScannetDataset(data.Dataset):
                             label_map_file_path,
                             type='instance')
         
-        
-        return {'color_imgset':color_imgset, 'depth_imgset':depth_imgset, 
-                'mesh_vertices':mesh_vertices, 'semantic_label':semantic_label, 
+        # process the semantic label into the benchmark label
+        semantic_label = torch.from_numpy(semantic_label.astype(np.int32))
+        valid_class_id = self.cfg.valid_class_ids
+        mask = torch.zeros_like(semantic_label).bool()
+        for class_id in valid_class_id:
+            mask = mask | (semantic_label==class_id)
+
+        semantic_label_ = torch.zeros_like(semantic_label)
+        semantic_label_[mask] = semantic_label[mask]
+        semantic_label = semantic_label_
+
+        def idx_map(idx):
+            return self.mapping[idx]
+        semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label)))).long()
+
+
+        return {'imgset':imgset, 
+                'mesh_vertices':mesh_vertices, 
+                'semantic_label':semantic_label, 
                 'instance_label':instance_label}
 
+    def get_vaild_class_mapping(self):
+        valid_class_ids = self.cfg.valid_class_ids
+        max_id = valid_class_ids[-1]
+        mapping = np.ones(max_id+1)*valid_class_ids.index(max_id)
+        
+        for i in range(max_id+1):
+            if i in valid_class_ids:
+                mapping[i] = valid_class_ids.index(i)
+            else:
+                mapping[i] = valid_class_ids.index(max_id)
+        
+        return mapping
 
 
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg):
-    
     dataset = RealviewScannetDataset(cfg)
-    print(dataset[0][0][1])
+    
 
 if __name__=='__main__':
     main()
