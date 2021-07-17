@@ -8,8 +8,10 @@ import sys
 import hydra
 try:
     from convert_scannet_instance_image import convert_instance_image
+    from export_trainmesh_for_evaluation import get_train_mesh
 except:
     from utils.convert_scannet_instance_image import convert_instance_image
+    from utils.export_trainmesh_for_evaluation import get_train_mesh
 
 def collate_image(batch):
     """
@@ -47,18 +49,17 @@ def collate_image(batch):
     return grouping
 
  
-
     
 
 class ImageDataset(data.Dataset):
     """
     Dataset consist of Images in one Scene
     """
-    def __init__(self, cfg, root_path, scene_id, transform=None):
+    def __init__(self, cfg, root_path, scene_id, transform=None, image_form='color'):
 
         self.cfg = cfg
 
-        image_form = cfg.dataset.image_form
+        
         if image_form!='color' and image_form!='depth':
             raise Exception("Param Error: Only Support <color>/<depth> form")
         
@@ -169,9 +170,28 @@ class RealviewScannetDataset(data.Dataset):
     def __getitem__(self, index):
         scene_id = self.dir_list[index]
 
-        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id) # RGB image
+        # get color images
+        color_imgset = ImageDataset(self.cfg, self.root_path, scene_id, image_form='color') # RGB image
 
-        return color_imgset
+        # get depth images
+        depth_imgset = ImageDataset(self.cfg, self.root_path, scene_id, image_form='depth') # depth image
+        
+        # get mesh
+        mesh_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.ply"%(scene_id))
+        agg_file_path = os.path.join(self.root_path, scene_id,"%s.aggregation.json"%(scene_id)) 
+        seg_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.0.010000.segs.json"%(scene_id))
+        label_map_file_path = self.cfg.dataset.label_map
+        mesh_vertices, semantic_label, instance_label = get_train_mesh(mesh_file_path,
+                            agg_file_path,
+                            seg_file_path,
+                            label_map_file_path,
+                            type='instance')
+        
+        
+        return {'color_imgset':color_imgset, 'depth_imgset':depth_imgset, 
+                'mesh_vertices':mesh_vertices, 'semantic_label':semantic_label, 
+                'instance_label':instance_label}
+
 
 
 @hydra.main(config_path="../config", config_name="config")

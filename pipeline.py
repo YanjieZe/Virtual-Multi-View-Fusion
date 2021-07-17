@@ -11,12 +11,12 @@ from unet import UNet
 from visdom import Visdom
 class Pipeline:
     """
-    Yet another pipeline
+    A pipeline for train & test 2D images
     """
     def __init__(self, cfg):
         self.cfg = cfg
     
-    def train(self):
+    def train(self):   
         
         # get device (cuda or cpu)
         device = self.get_device()
@@ -47,8 +47,8 @@ class Pipeline:
         num_epoch = self.cfg.num_epoch
         for epoch in range(num_epoch): 
 
-            for scene_id in range(1): # loop over scenes
-                image_dataset = scene_dataset[scene_id]
+            for scene_id in range(len(scene_dataset)): # loop over scenes
+                image_dataset = scene_dataset[scene_id]['color_imgset']
                 image_dataloader = data.DataLoader(
                     dataset=image_dataset,
                     batch_size=self.cfg.data_loader.batch_size,
@@ -72,6 +72,7 @@ class Pipeline:
                     loss.backward()
                     optimizer.step()
                     if idx%10==0:
+                        print('epoch %d idx %d loss:%f '%(epoch, idx, loss.item()))
                         if self.cfg.visdom.use:
                             viz.line(
                                 X = np.array([idx]),
@@ -82,9 +83,13 @@ class Pipeline:
 
             self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
 
+    def evaluation(self):
+        pass
+    
     def save_model(self, model, model_name):
         save_path = os.path.join(self.cfg.model.save_model_path, model_name+'.pth')
         torch.save(model.state_dict(), save_path)
+
 
     def get_scene_dataset(self):
         if self.cfg.dataset.real_view: # use real view

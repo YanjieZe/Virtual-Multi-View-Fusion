@@ -3,7 +3,6 @@ dataset:
   train_path: /data/ScanNetV2/scans
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
-  image_form: color
   real_view: True # this means we use real view, not virtual view
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
@@ -50,5 +49,5 @@ benchmark_labels: ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 
 valid_class_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
 
 visdom:
-  use: True
+  use: False
   env: YanjieZe
