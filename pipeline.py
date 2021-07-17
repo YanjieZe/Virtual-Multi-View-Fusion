@@ -9,6 +9,8 @@ from utils.virtualview_loader import VirtualviewScannetDataset
 from modeling.deeplab import DeepLab
 from unet import UNet
 from visdom import Visdom
+
+
 class Pipeline:
     """
     A pipeline for train & test 2D images
@@ -72,14 +74,17 @@ class Pipeline:
                     loss.backward()
                     optimizer.step()
                     if idx%10==0:
-                        print('epoch %d idx %d loss:%f '%(epoch, idx, loss.item()))
                         if self.cfg.visdom.use:
                             viz.line(
                                 X = np.array([idx]),
                                 Y = np.array([loss.item()]),
-                                win = 'epoch%d'%epoch,
-                                opts= dict(title = 'epoch%d'%epoch),
+                                win = 'epoch%d scene%d'%(epoch, scene_id),
+                                opts= dict(title = 'epoch%d scene%d'%(epoch, scene_id)),
                                 update = 'append')
+                        else:
+                            print('epoch %d idx %d loss:%f '%(epoch, idx, loss.item()))
+
+
 
             self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
 

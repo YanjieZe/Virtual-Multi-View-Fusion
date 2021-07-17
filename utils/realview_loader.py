@@ -190,6 +190,14 @@ class ImageDataset(data.Dataset):
         matrix = torch.from_numpy(np.array(matrix))
         return matrix
              
+    def get_intrinsic_matrix(self, file_path):
+        """
+        read the intrinsic matrix in file *.txt
+        """
+        with open(file_path, 'r') as f:
+            matrix = [[float(num) for num in line.split(' ')] for line in f]
+        matrix = torch.from_numpy(np.array(matrix))
+        return matrix 
 
 class RealviewScannetDataset(data.Dataset):
     """
@@ -225,6 +233,7 @@ class RealviewScannetDataset(data.Dataset):
         agg_file_path = os.path.join(self.root_path, scene_id,"%s.aggregation.json"%(scene_id)) 
         seg_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.0.010000.segs.json"%(scene_id))
         label_map_file_path = self.cfg.dataset.label_map
+        
         mesh_vertices, semantic_label, instance_label = get_train_mesh(mesh_file_path,
                             agg_file_path,
                             seg_file_path,
@@ -246,11 +255,19 @@ class RealviewScannetDataset(data.Dataset):
             return self.mapping[idx]
         semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label)))).long()
 
+        # get camera params
+        intrinsic_path = os.path.join(self.root_path, scene_id, "exported", "intrinsic")
+        intrinsic_color_matrix = self.get_intrinsic_matrix(os.path.join(intrinsic_path, "intrinsic_color.txt"))
+        intrinsic_depth_matrix = self.get_intrinsic_matrix(os.path.join(intrinsic_path, "intrinsic_depth.txt"))
+        
 
         return {'imgset':imgset, 
                 'mesh_vertices':mesh_vertices, 
                 'semantic_label':semantic_label, 
-                'instance_label':instance_label}
+                'instance_label':instance_label,
+                'intrinsic_color':intrinsic_color_matrix,
+                'intrinsic_depth':intrinsic_depth_matrix}
+
 
     def get_vaild_class_mapping(self):
         valid_class_ids = self.cfg.valid_class_ids
@@ -265,6 +282,14 @@ class RealviewScannetDataset(data.Dataset):
         
         return mapping
 
+    def get_intrinsic_matrix(self, file_path):
+        """
+        read the intrinsic matrix in file *.txt
+        """
+        with open(file_path, 'r') as f:
+            matrix = [[float(num) for num in line.split(' ')] for line in f]
+        matrix = torch.from_numpy(np.array(matrix))
+        return matrix
 
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg):
