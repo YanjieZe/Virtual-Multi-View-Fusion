@@ -50,7 +50,7 @@ class Pipeline:
         for epoch in range(num_epoch): 
 
             for scene_id in range(len(scene_dataset)): # loop over scenes
-                image_dataset = scene_dataset[scene_id]['imgset']
+                image_dataset = scene_dataset[4]['imgset']
                 image_dataloader = data.DataLoader(
                     dataset=image_dataset,
                     batch_size=self.cfg.data_loader.batch_size,
