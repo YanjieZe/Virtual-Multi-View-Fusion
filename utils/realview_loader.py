@@ -241,7 +241,7 @@ class RealviewScannetDataset(data.Dataset):
                             seg_file_path,
                             label_map_file_path,
                             type='instance')
-        
+        mesh_vertices = torch.from_numpy(mesh_vertices.astype(np.float64))
         # process the semantic label into the benchmark label
         semantic_label = torch.from_numpy(semantic_label.astype(np.int32))
         valid_class_id = self.cfg.valid_class_ids
