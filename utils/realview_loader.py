@@ -66,13 +66,13 @@ class ImageDataset(data.Dataset):
     """
     Dataset consist of Images in one Scene
     """
-    def __init__(self, cfg, root_path, scene_id, transform=None):
+    def __init__(self, cfg, root_path, scene_id, use_transform=True):
 
         self.cfg = cfg
         
         self.root_path = root_path
         self.scene_id = scene_id
-
+        self.use_transform = use_transform
         # several paths
         self.color_image_path = os.path.join(self.root_path, self.scene_id, 'exported','color')
         self.depth_image_path = os.path.join(self.root_path, self.scene_id, 'exported','depth')
@@ -125,18 +125,21 @@ class ImageDataset(data.Dataset):
        
         # read color img
         img = Image.open(color_image_name)
-        img = self.transform(img)
+        if self.use_transform:
+            img = self.transform(img)
         img = torch.from_numpy(np.array(img).astype(np.float32).transpose(2,0,1))
         
         # read depth img
         depth_img = Image.open(depth_image_name)
-        depth_img = self.transform(depth_img)
+        if self.use_transform:
+            depth_img = self.transform(depth_img)
         depth_img = np.array(depth_img)
         depth_img = torch.from_numpy(depth_img)
 
         # read full semantic label
         semantic_label = Image.open(label_name)
-        semantic_label = self.transform(semantic_label)
+        if self.use_transform:
+            semantic_label = self.transform(semantic_label)
         semantic_label = torch.from_numpy(np.array(semantic_label))
         
 
@@ -205,12 +208,12 @@ class RealviewScannetDataset(data.Dataset):
     """
     Dataset of Scenes
     """
-    def __init__(self, cfg, mode='train'):
+    def __init__(self, cfg, mode='train',use_transform=True):
 
         self.cfg = cfg
-
+        self.use_transform = use_transform
         if mode=='train':
-            self.root_path = cfg.dataset.train_path
+            self.root_path = cfg.dataset.train_path        
         elif mode=='test':
             self.root_path = cfg.dataset.test_path
         else:
@@ -228,7 +231,10 @@ class RealviewScannetDataset(data.Dataset):
         scene_id = self.dir_list[index]
 
         # get images, including color and depth
-        imgset = ImageDataset(self.cfg, self.root_path, scene_id) 
+        imgset = ImageDataset(cfg=self.cfg, 
+                        root_path=self.root_path, 
+                        scene_id=scene_id,
+                        use_transform=self.use_transform) 
         
         # get mesh
         mesh_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.ply"%(scene_id))
@@ -262,13 +268,16 @@ class RealviewScannetDataset(data.Dataset):
         intrinsic_color_matrix = self.get_intrinsic_matrix(os.path.join(intrinsic_path, "intrinsic_color.txt"))
         intrinsic_depth_matrix = self.get_intrinsic_matrix(os.path.join(intrinsic_path, "intrinsic_depth.txt"))
         
+        # get align extrinsic
+        colorToDepthExtrinsics = self.get_align_extrinsic(scene_id)
 
         return {'imgset':imgset, 
                 'mesh_vertices':mesh_vertices, 
                 'semantic_label':semantic_label, 
                 'instance_label':instance_label,
                 'intrinsic_color':intrinsic_color_matrix,
-                'intrinsic_depth':intrinsic_depth_matrix}
+                'intrinsic_depth':intrinsic_depth_matrix,
+                'extrinsic_color_to_depth':colorToDepthExtrinsics}
 
 
     def get_vaild_class_mapping(self):
@@ -292,6 +301,29 @@ class RealviewScannetDataset(data.Dataset):
             matrix = [[float(num) for num in line.split(' ')] for line in f]
         matrix = torch.from_numpy(np.array(matrix))
         return matrix
+
+    def get_align_extrinsic(self,scene_id):
+        """
+        Read colorToDepthExtrinsics in .txt file
+
+        TODO: Check whether we extract the extrinsic correctly.
+        """
+        file_path = os.path.join(self.root_path, scene_id,'%s.txt'%(scene_id))
+        target_line = None
+        with open(file_path, 'r') as open_file:
+            for line in open_file:
+                if line.split()[0]=='colorToDepthExtrinsics':
+                    target_line = line
+                    break
+        target_line=target_line.split()
+        del target_line[0]
+        del target_line[0]
+        extrinsic_matrix = torch.zeros(4,4).float()
+        
+        for i in range(4):
+            for j in range(4):
+                extrinsic_matrix[i][j] = float(target_line[i*4+j])
+        return extrinsic_matrix
 
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg):
