@@ -14,18 +14,23 @@ class Fusioner:
         self.intrinsic_color = intrinsic_color
     
 
-    def projection(self, depth_img, color_img, pose_matrix, semantic_label):
+    def projection(self, depth_img, color_img, pose_matrix, semantic_label, threshold=0.5):
         """
         With depth check
         """
         # TODO: Is this extrinsic true?
+
         # # one method 
         # extrinsic = torch.inverse(pose_matrix)
+
         # another method
         extrinsic = pose_matrix
-         
+
+        # ------------------------------------------------------------------------# 
+        
         rotation_matrix = extrinsic[:3,:3] # 3*3
         translation_vector = extrinsic[:3,3].unsqueeze(1) # 3*1
+        
         translation_vector = (torch.ones(self.pc.shape[0])*translation_vector).T.unsqueeze(2)# num_point*3*1
         
         project_points = torch.matmul(rotation_matrix, self.pc) + translation_vector # num_point*3*1
@@ -39,28 +44,32 @@ class Fusioner:
         project_points_depth = torch.matmul(intrinsic_depth, project_points)
         
         # depth that we use ex/intrinsic to get, use an average function to increase the precision
-        depth_calcul = (project_points_depth[...,2,0] + project_points_color[...,2,0])/2
+        # depth_calcul = (project_points_depth[...,2,0] + project_points_color[...,2,0])/2
         
         # div Z
         project_points_depth[...,0,0] = project_points_depth[...,0,0]/torch.abs(project_points_depth[...,2,0])
         project_points_depth[...,1,0] = project_points_depth[...,1,0]/torch.abs(project_points_depth[...,2,0])
-        project_points_depth[...,2,0] = project_points_depth[...,2,0]/torch.abs(project_points_depth[...,2,0])
+        # project_points_depth[...,2,0] = project_points_depth[...,2,0]/torch.abs(project_points_depth[...,2,0])
 
         # div Z
         project_points_color[...,0,0] = project_points_color[...,0,0]/torch.abs(project_points_color[...,2,0])
         project_points_color[...,1,0] = project_points_color[...,1,0]/torch.abs(project_points_color[...,2,0])
-        project_points_color[...,2,0] = project_points_color[...,2,0]/torch.abs(project_points_color[...,2,0])
+        # project_points_color[...,2,0] = project_points_color[...,2,0]/torch.abs(project_points_color[...,2,0])
         
 
-        
-        print(project_points_color[0])
-        print(project_points_depth[0])
+        # compute depth in prediction
+        depth_pred = torch.matmul(torch.inverse(rotation_matrix), translation_vector)
+        depth_pred = torch.sqrt(torch.sum(torch.square(self.pc - depth_pred), dim=1))
+
+        point_id = 500
+        print('color pixel',project_points_color[point_id])
+        print('depth pixel',project_points_depth[point_id])
         
         # TODO: Align??
-        print(color_img.shape)
-        print(depth_img.shape)
-        print('depth1', depth_calcul[0])
-        print('depth2', depth_img[int(project_points_depth[0][0]/10)][int(project_points_depth[0][1]/10)])
+        # color_img.shape = [3, 968, 1296]
+        # depth_img.shape = [480, 640]
+        print('depth pred', depth_pred[point_id])
+        print('depth real', depth_img[int(project_points_depth[point_id][0])][int(project_points_depth[point_id][1])])
         
         
 
