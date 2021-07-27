@@ -17,7 +17,7 @@ class Fusioner:
     def projection(self, depth_img, color_img, pose_matrix, semantic_label, threshold=0.5):
         """
         With depth check
-        TODO: 
+        TODO: Get this function right
         """
         # # one method 
         extrinsic = torch.inverse(pose_matrix)
@@ -33,8 +33,7 @@ class Fusioner:
         translation_vector = (torch.ones(self.pc.shape[0])*translation_vector).T.unsqueeze(2)# num_point*3*1
         
         
-        
-        # TODO: 下面写的转化不太对？
+        # TODO: check the accuracy of code
         intrinsic_color = self.intrinsic_color[:3,:4]
         intrinsic_depth = self.intrinsic_depth[:3,:4]
         
@@ -54,17 +53,30 @@ class Fusioner:
         project_points_depth[...,0,0] = project_points_depth[...,0,0]/torch.abs(project_points_depth[...,2,0])
         project_points_depth[...,1,0] = project_points_depth[...,1,0]/torch.abs(project_points_depth[...,2,0])
         
-        print('depth coordinate', project_points_depth[0])
-        print('color coordinate', project_points_color[0])
 
         # compute depth in prediction
         depth_pred = torch.matmul(torch.inverse(rotation_matrix), translation_vector)
         depth_pred = torch.sqrt(torch.sum(torch.square(self.pc - depth_pred), dim=1))
-
         
-        print('depth img size', depth_img.shape, color_img.shape)
-        print('depth in img', depth_img[int(project_points_depth[0][0]/10)][int(project_points_depth[0][1]/10)]) 
-        print('depth pred', depth_pred[0])
+
+        # clap the points which are not in the img
+        project_points_depth = project_points_depth.squeeze(2)[...,0:2].int()
+        row_bound = depth_img.shape[0]
+        colum_bound = depth_img.shape[1]
+        up_bound = torch.from_numpy(np.array([row_bound, colum_bound]))
+        low_bound = torch.from_numpy(np.array([0, 0]))
+        mask = project_points_depth<up_bound & project_points_depth>=low_bound
+        mask = torch.sum(mask, dim=1)
+        mask = mask>=2
+        
+        point_bounded = project_points_depth[mask]
+        depth_pred_bounded = depth_pred[mask]
+        
+        for idx in range(point_bounded.shape[0]):
+            error = depth_img[point_bounded[idx][0]][point_bounded[idx][1]]/1000 - depth_pred_bounded[idx]
+            print(error)
+        
+        
 
 
 @hydra.main(config_path='../config', config_name='config')
@@ -91,6 +103,7 @@ def demo(cfg):
     fusion_machine = Fusioner(point_cloud=pc, 
                         intrinsic_depth=intrinsic_depth,
                         intrinsic_color=intrinsic_color)
+
     fusion_machine.projection(depth_img=depth_img, 
                             color_img=color_img,
                             pose_matrix=pose_matrix,
