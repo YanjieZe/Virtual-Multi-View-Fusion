@@ -6,6 +6,7 @@ from PIL import Image
 from torchvision.transforms import transforms
 import sys
 import hydra
+from plyfile import PlyData
 try:
     from convert_scannet_instance_image import convert_instance_image
     from export_trainmesh_for_evaluation import get_train_mesh
@@ -122,7 +123,7 @@ class ImageDataset(data.Dataset):
         instance_label_name = os.path.join(self.instance_path, self.instance_list[index])
         label_name = os.path.join(self.label_path, self.label_list[index])
         pose_file_name = os.path.join(self.pose_path, self.pose_list[index])
-       
+        
         # read color img
         img = Image.open(color_image_name)
         if self.use_transform:
@@ -164,7 +165,7 @@ class ImageDataset(data.Dataset):
 
         # get pose
         pose_matrix = self.get_pose_matrix(pose_file_name)
-
+        
 
         return {'color_img': img, 
                 'depth_img': depth_img,
@@ -241,6 +242,8 @@ class RealviewScannetDataset(data.Dataset):
         agg_file_path = os.path.join(self.root_path, scene_id,"%s.aggregation.json"%(scene_id)) 
         seg_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.0.010000.segs.json"%(scene_id))
         label_map_file_path = self.cfg.dataset.label_map
+
+        axis_alignment = np.fromstring(open(os.path.join(self.root_path, scene_id, "%s.txt" % (scene_id))).readline().split('=')[1], sep=' \n\t', dtype=float).reshape(4, 4)
         
         mesh_vertices, semantic_label, instance_label = get_train_mesh(mesh_file_path,
                             agg_file_path,
@@ -248,6 +251,7 @@ class RealviewScannetDataset(data.Dataset):
                             label_map_file_path,
                             type='instance')
         mesh_vertices = torch.from_numpy(mesh_vertices.astype(np.float64))
+        
         # process the semantic label into the benchmark label
         semantic_label = torch.from_numpy(semantic_label.astype(np.int32))
         valid_class_id = self.cfg.valid_class_ids
@@ -271,7 +275,14 @@ class RealviewScannetDataset(data.Dataset):
         # get align extrinsic
         colorToDepthExtrinsics = self.get_align_extrinsic(scene_id)
 
+        # alignment?
+        # mesh_vertices = (mesh_vertices - axis_alignment[:3, -1]) @ axis_alignment[:3, :3]
+        pc_xyz, pc_color = self.get_pointcloud(scene_id)
+        pc_xyz, pc_color = torch.from_numpy(pc_xyz).double(), torch.from_numpy(pc_color).double()
+
         return {'imgset':imgset, 
+                'point_cloud_xyz':pc_xyz,
+                'point_cloud_color':pc_color,
                 'mesh_vertices':mesh_vertices, 
                 'semantic_label':semantic_label, 
                 'instance_label':instance_label,
@@ -279,6 +290,42 @@ class RealviewScannetDataset(data.Dataset):
                 'intrinsic_depth':intrinsic_depth_matrix,
                 'extrinsic_color_to_depth':colorToDepthExtrinsics}
 
+    def get_pointcloud(self, scene_id):
+        mesh_file_path = os.path.join(self.root_path, scene_id, "%s_vh_clean_2.ply"%(scene_id))
+        # 1 get vertices
+        with open(mesh_file_path, 'rb') as f:
+            plydata = PlyData.read(f)
+            num_verts = plydata['vertex'].count
+            vertices = np.zeros(shape=[num_verts, 6], dtype=np.float32)
+            vertices[:, 0] = plydata['vertex'].data['x']
+            vertices[:, 1] = plydata['vertex'].data['y']
+            vertices[:, 2] = plydata['vertex'].data['z']
+            vertices[:, 3] = plydata['vertex'].data['red']
+            vertices[:, 4] = plydata['vertex'].data['green']
+            vertices[:, 5] = plydata['vertex'].data['blue']
+        
+        # 2   get axisAlignment
+        meta_file = os.path.join(self.root_path, scene_id,'%s.txt'%(scene_id))
+        lines = open(meta_file).readlines()
+        axis_align_matrix = None
+        for line in lines:
+            if 'axisAlignment' in line:
+                axis_align_matrix = [float(x) for x in line.rstrip().strip('axisAlignment = ').split(' ')]
+
+        # 3. Offset point cloud PLY file
+        if axis_align_matrix != None:
+            axis_align_matrix = np.array(axis_align_matrix).reshape((4, 4)) #  matrix
+            pts = np.ones((vertices.shape[0], 4))
+            pts[:, 0:3] = vertices[:, :3]
+            pts = np.dot(pts, axis_align_matrix.transpose())
+            aligned_vertices = np.copy(vertices)
+            aligned_vertices[:, 0:3] = pts[:, 0:3]
+
+        # 4. Re-write PLY
+        points = aligned_vertices[:,:3]
+        colors = aligned_vertices[:,3:6]
+   
+        return points, colors
 
     def get_vaild_class_mapping(self):
         valid_class_ids = self.cfg.valid_class_ids
@@ -292,6 +339,7 @@ class RealviewScannetDataset(data.Dataset):
                 mapping[i] = valid_class_ids.index(max_id)
         
         return mapping
+
 
     def get_intrinsic_matrix(self, file_path):
         """

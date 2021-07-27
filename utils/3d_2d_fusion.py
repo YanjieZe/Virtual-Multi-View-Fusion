@@ -17,14 +17,13 @@ class Fusioner:
     def projection(self, depth_img, color_img, pose_matrix, semantic_label, threshold=0.5):
         """
         With depth check
+        TODO: 
         """
-        # TODO: Is this extrinsic true?
-
         # # one method 
-        # extrinsic = torch.inverse(pose_matrix)
+        extrinsic = torch.inverse(pose_matrix)
 
         # another method
-        extrinsic = pose_matrix
+        # extrinsic = pose_matrix
 
         # ------------------------------------------------------------------------# 
         
@@ -56,15 +55,17 @@ class Fusioner:
         project_points_depth[...,1,0] = project_points_depth[...,1,0]/torch.abs(project_points_depth[...,2,0])
         
         print('depth coordinate', project_points_depth[0])
+        print('color coordinate', project_points_color[0])
 
         # compute depth in prediction
         depth_pred = torch.matmul(torch.inverse(rotation_matrix), translation_vector)
         depth_pred = torch.sqrt(torch.sum(torch.square(self.pc - depth_pred), dim=1))
 
         
-        print('depth img size', depth_img.shape)
-        
-        
+        print('depth img size', depth_img.shape, color_img.shape)
+        print('depth in img', depth_img[int(project_points_depth[0][0]/10)][int(project_points_depth[0][1]/10)]) 
+        print('depth pred', depth_pred[0])
+
 
 @hydra.main(config_path='../config', config_name='config')
 def demo(cfg):
@@ -73,7 +74,9 @@ def demo(cfg):
 
     scene_idx = 0
     fetch_scene_data = dataset[scene_idx]
-    pc = fetch_scene_data['mesh_vertices']
+    pc = fetch_scene_data['point_cloud_xyz']
+    vertices = fetch_scene_data['mesh_vertices']
+   
     intrinsic_depth = fetch_scene_data['intrinsic_depth']
     intrinsic_color = fetch_scene_data['intrinsic_color']
     imgset = fetch_scene_data['imgset']
@@ -94,7 +97,6 @@ def demo(cfg):
                             semantic_label=semantic_label
                             )
 
-    # fusioner = Fusioner()
 
 
 
