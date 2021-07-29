@@ -1,24 +1,15 @@
 # Virtual Multi-view Fusion
 My personal implementation of paper: Virtual Multi-view Fusion for 3D Semantic Segmentation (ECCV 2020)
 
-# Information Log
-root data path: /data/ScanNetV2
-
-train data: /data/ScanNetV2/scans
-
-from scene0000_00 to scene0706_00
-
-test data: /data/ScanNetV2/scans_test
+# 2D-3D Fusion Algorithm
+1. Use 3D point, extrinsic and intrinsic, and get project point $P_{proj}$. 
+2. Compute the theoretical depth prediction, based on 3D point, extrinsic and intrinsic. Denote as $D_{pred}$
+3. Based on the size of the depth img, filter out the points not in the depth img. Also, filter out the depths. Get $P_{proj}^{bound}$ and $D_{pred}^{bound}$.
+4. Depth Check. Get the real depth of each point in $P_{proj}^{bound}$ from the depth img, denoted as $D_{real}^{bound}$. Compare $D_{real}^{bound}$ and $D_{pred}^{bound}$ with the threshold $\delta$ and get mask $M_{satisf}$. 
+5. Collect Features. Get features for points in $P_{proj}^{bound}[M_{satisfy}]$.
 
 
-# Process Log
-2021.7.6 
-
-Begin to render. install pytorch 3d, cost a long time.
-
-Success in a new enviroment **pytorch3d**.
-
-# ScanNet
+# ScanNet Dataset
 ```
 <scanId>
 |-- <scanId>.sens

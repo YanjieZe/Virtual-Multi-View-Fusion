@@ -60,21 +60,31 @@ class Fusioner:
         
 
         # clap the points which are not in the img
+        
         project_points_depth = project_points_depth.squeeze(2)[...,0:2].int()
         row_bound = depth_img.shape[0]
         colum_bound = depth_img.shape[1]
         up_bound = torch.from_numpy(np.array([row_bound, colum_bound]))
-        low_bound = torch.from_numpy(np.array([0, 0]))
-        mask = project_points_depth<up_bound & project_points_depth>=low_bound
+        
+        low_bound = torch.from_numpy(np.array([0.0, 0.0]))
+        # bounded mask computation
+        
+        mask = project_points_depth<up_bound
+        mask2 = project_points_depth>=low_bound
+        
         mask = torch.sum(mask, dim=1)
-        mask = mask>=2
+        mask2 = torch.sum(mask2, dim=1)
+        mask = mask + mask2
+        mask = mask>=4
         
         point_bounded = project_points_depth[mask]
-        depth_pred_bounded = depth_pred[mask]
-        
-        for idx in range(point_bounded.shape[0]):
-            error = depth_img[point_bounded[idx][0]][point_bounded[idx][1]]/1000 - depth_pred_bounded[idx]
-            print(error)
+       
+        depth_pred_bounded = depth_pred[mask]/1000
+        depth_real_bounded = [depth_img[point_bounded[i][0]][point_bounded[i][1]] for i in range(len(point_bounded))]
+        # TODO: The depth seems still not true
+        import pdb; pdb.set_trace()
+        print(depth_real_bounded)
+        # TODO: check depth, collect feature
         
         
 
