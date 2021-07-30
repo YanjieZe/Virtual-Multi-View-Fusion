@@ -9,6 +9,7 @@ from utils.virtualview_loader import VirtualviewScannetDataset
 from modeling.deeplab import DeepLab
 from unet import UNet
 from visdom import Visdom
+from utils.miou import miou_2d, miou_3d
 
 
 class Pipeline:
@@ -101,8 +102,8 @@ class Pipeline:
 
         # first, get a collection of different scenes
         scene_dataset = self.get_scene_dataset(
-            mode='test',
-            use_transform=False
+            mode='train',
+            use_transform=True
         )
 
         # model
@@ -127,25 +128,27 @@ class Pipeline:
                 collate_fn=collate_image)
 
             for idx, batch in enumerate(image_dataloader): # loop over image
+                with torch.no_grad():
+                    img = batch['color_img'].to(device)
+                    semantic_label = batch['semantic_label'].to(device)
+                    #instance_label = batch['instance_label'].to(device)
 
-                img = batch['color_img'].to(device)
-                semantic_label = batch['semantic_label'].to(device)
-                #instance_label = batch['instance_label'].to(device)
+                    pred = model(img)
+                   
+                    pred_label = torch.max(pred, dim=1).indices
 
-                pred = model(img)
-                
-                # TODO: add IOU
-                
-                if idx%10==0:
-                    if self.cfg.visdom.use:
-                        viz.line(
-                            X = np.array([idx]),
-                            Y = np.array([loss.item()]),
-                            win = 'epoch%d scene%d'%(epoch, scene_id),
-                            opts= dict(title = 'epoch%d scene%d'%(epoch, scene_id)),
-                            update = 'append')
-                    else:
-                        print('epoch %d idx %d loss:%f '%(epoch, idx, loss.item()))
+                    mean_iou = miou_2d(pred_label.cpu(), semantic_label.cpu())
+                    print(mean_iou)
+                # if idx%10==0:
+                #     if self.cfg.visdom.use:
+                #         viz.line(
+                #             X = np.array([idx]),
+                #             Y = np.array([loss.item()]),
+                #             win = 'scene%d'%(scene_id),
+                #             opts= dict(title = 'scene%d'%(scene_id)),
+                #             update = 'append')
+                #     else:
+                #         print('idx %d loss:%f '%(idx, loss.item()))
 
 
     

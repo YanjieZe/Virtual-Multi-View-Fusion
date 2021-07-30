@@ -22,7 +22,7 @@ def collate_image(batch):
     if len(batch)==1:
         
         batch[0]['color_img'] = batch[0]['color_img'].unsqueeze(0)
-        batch[0]['depth_img'] = label[0]['depth_img'].unsqueeze(0)
+        batch[0]['depth_img'] = batch[0]['depth_img'].unsqueeze(0)
         batch[0]['instance_label'] = batch[0]['instance_label'].unsqueeze(0)
         batch[0]['semantic_label'] = batch[0]['semantic_label'].unsqueeze(0)
         batch[0]['pose_matrix'] = batch[0]['pose_matrix'].unsqueeze(0)
