@@ -2,23 +2,57 @@ from PIL import Image
 import numpy as np
 import torch
 import hydra
+from tqdm import tqdm
+import gc # garbage collector
+import psutil 
+import os
+
+
+def print_memory_info():
+    """
+    Used for improving program
+    """
+    print(u'当前进程的内存使用:%.4f GB' % (psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024 / 1024) )
+    info = psutil.virtual_memory()
+    print( u'电脑总内存：%.4f GB' % (info.total / 1024 / 1024 / 1024) )
+    print(u'当前使用的总内存占比：',info.percent)
+    print(u'cpu个数：',psutil.cpu_count())
+
 
 class Fusioner:
     """
-    Get Mesh, then project them into 2D image
+    Get Mesh, then project them into 2D image, and get feature
     """
-    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color):
+    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color, collection_method='average', use_gt=True):
         self.pc = point_cloud.unsqueeze(2)
-        self.feature_vectors = np.zeros(self.pc.shape[0])
+
+        self.feature_vector = None
+
         self.intrinsic_depth = intrinsic_depth
         self.intrinsic_color = intrinsic_color
-    
 
-    def projection(self, depth_img, color_img, pose_matrix, semantic_label, threshold=0.5):
         """
-        With depth check
+        Supported Methods for Feature Collection:
+        'average': sum and average
+        TODO: add other methods
+        """
+        self.collection_method = collection_method
+
+        self.use_gt = use_gt
+        self.counting_vector = torch.zeros(self.pc.shape[0]) # used for couting img
+
+
+    def projection(self, depth_img, color_img, pose_matrix, feature_img, threshold=1.0):
+        """
+        Implementation of 2D-3D Fusion Algorithm.
+        Params:
+            gt: If gt=True, feature img is semantic label img.
+                If gt=False, feature img is the output of the model.
+
         TODO: Get this function right
         """
+        LargeNum = 500
+
         # # one method 
         extrinsic = torch.inverse(pose_matrix)
 
@@ -44,29 +78,32 @@ class Fusioner:
         project_points = torch.matmul(extrinsic, point_clouds)
 
         # use intrinsic
-        project_points_color = torch.matmul(intrinsic_color, project_points)
+        # project_points_color = torch.matmul(intrinsic_color, project_points)
         project_points_depth = torch.matmul(intrinsic_depth, project_points)
 
+        del project_points
+        gc.collect()
+
         # get pixel level coordinates
-        project_points_color[...,0,0] = project_points_color[...,0,0]/torch.abs(project_points_color[...,2,0])
-        project_points_color[...,1,0] = project_points_color[...,1,0]/torch.abs(project_points_color[...,2,0])
+        # project_points_color[...,0,0] = project_points_color[...,0,0]/torch.abs(project_points_color[...,2,0])
+        # project_points_color[...,1,0] = project_points_color[...,1,0]/torch.abs(project_points_color[...,2,0])
         project_points_depth[...,0,0] = project_points_depth[...,0,0]/torch.abs(project_points_depth[...,2,0])
         project_points_depth[...,1,0] = project_points_depth[...,1,0]/torch.abs(project_points_depth[...,2,0])
         
 
         # compute depth in prediction
         depth_pred = torch.matmul(torch.inverse(rotation_matrix), translation_vector)
-        depth_pred = torch.sqrt(torch.sum(torch.square(self.pc - depth_pred), dim=1))
+        depth_pred = torch.sqrt(torch.sum(torch.square(self.pc - depth_pred), dim=1)).squeeze(1)
         
 
         # clap the points which are not in the img
         
-        project_points_depth = project_points_depth.squeeze(2)[...,0:2].int()
+        project_points_depth = project_points_depth.squeeze(2)[...,0:2].long()
         row_bound = depth_img.shape[0]
         colum_bound = depth_img.shape[1]
         up_bound = torch.from_numpy(np.array([row_bound, colum_bound]))
         
-        low_bound = torch.from_numpy(np.array([0.0, 0.0]))
+        low_bound = torch.from_numpy(np.array([0, 0]))
         # bounded mask computation
         
         mask = project_points_depth<up_bound
@@ -75,17 +112,59 @@ class Fusioner:
         mask = torch.sum(mask, dim=1)
         mask2 = torch.sum(mask2, dim=1)
         mask = mask + mask2
-        mask = mask>=4
+        mask = mask>=4 # get bounded mask
         
-        point_bounded = project_points_depth[mask]
+        del mask2 
+        gc.collect()
+
+        depth_real = torch.ones(self.pc.shape[0])*(LargeNum)
+        
+        
+        # depth check
+        
+        # get depth
+        for i in tqdm(list(np.where(mask)[0]), desc='Get Real Depth'):
+            depth_real[i] = depth_img[ project_points_depth[i][0], project_points_depth[i][1] ]
+        
+
+        # get depth mask
+        depth_mask = torch.abs(depth_real - depth_pred) <= threshold
+
+        # collect features
+
+        if self.use_gt: # use ground truth label img
+            if self.feature_vector is None:
+                self.feature_vector = torch.zeros(self.pc.shape[0])
+            if self.collection_method == 'average':
+                for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                    self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
+                    
+                    # count the img that have been used in projection
+                    self.counting_vector[i] += 1
+            else:
+                raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
        
-        depth_pred_bounded = depth_pred[mask]/1000
-        depth_real_bounded = [depth_img[point_bounded[i][0]][point_bounded[i][1]] for i in range(len(point_bounded))]
-        # TODO: The depth seems still not true
-        import pdb; pdb.set_trace()
-        print(depth_real_bounded)
-        # TODO: check depth, collect feature
+        else: # use output of our model
+
+            pass # TODO: finish this module
         
+       
+        
+
+    def get_features(self):
+        """
+        Get the collected features
+        """
+        if self.collection_method == 'average':
+            for i in tqdm(list(np.where(self.counting_vector)[0]),desc='Get Avg Features'):
+
+                self.feature_vector[i] = self.feature_vector[i] / self.counting_vector[i]
+
+            return self.feature_vector.long()
+        else:
+            raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
+       
+
         
 
 
@@ -112,15 +191,20 @@ def demo(cfg):
     
     fusion_machine = Fusioner(point_cloud=pc, 
                         intrinsic_depth=intrinsic_depth,
-                        intrinsic_color=intrinsic_color)
+                        intrinsic_color=intrinsic_color,
+                        collection_method='average',
+                        use_gt=True)
 
     fusion_machine.projection(depth_img=depth_img, 
                             color_img=color_img,
                             pose_matrix=pose_matrix,
-                            semantic_label=semantic_label
+                            feature_img=semantic_label,
+                            threshold=5.0
                             )
 
+    feature_vector = fusion_machine.get_features()
 
+    print(feature_vector)
 
 
 if __name__=='__main__':
