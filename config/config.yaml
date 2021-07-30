@@ -18,13 +18,16 @@ model:
   # ------------------------------------------------------#
 
   pretrain: False
-  pretrained_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/???
+  pretrained_model_path: None
   # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
   num_classes: 21
   output_stride: 16
   num_channels: 3
   save_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/
 
+
+evaluation: 
+  model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch4.pth
 
 optimizer:
   name: Adam
@@ -48,6 +51,8 @@ render:
 benchmark_labels: ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'bookshelf', 'picture', 'counter', 'desk', 'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink', 'bathtub', 'otherfurniture']
 valid_class_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
 
+
 visdom:
-  use: True
+  use: False
   env: YanjieZe
+

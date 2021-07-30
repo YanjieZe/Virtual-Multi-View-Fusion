@@ -1,6 +1,10 @@
 # Virtual Multi-view Fusion
 My personal implementation of paper: Virtual Multi-view Fusion for 3D Semantic Segmentation (ECCV 2020)
 
+# Usage
+```python
+python pipeline.py 
+```
 # 2D-3D Fusion Algorithm
 1. Use 3D point, extrinsic and intrinsic, and get project point $P_{proj}$. 
 2. Compute the theoretical depth prediction, based on 3D point, extrinsic and intrinsic. Denote as $D_{pred}$
