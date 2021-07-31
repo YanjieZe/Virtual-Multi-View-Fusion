@@ -7,7 +7,7 @@ dataset:
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
 
-device: "cuda:0"
+device: "cuda:1"
 
   
 model:
@@ -27,7 +27,7 @@ model:
 
 
 evaluation: 
-  model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch4.pth
+  model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch19.pth
 
 optimizer:
   name: Adam
@@ -38,7 +38,7 @@ data_loader:
   batch_size: 2
   num_workers: 4
 
-num_epoch: 5
+num_epoch: 20
 
 render:
   img_size: 256

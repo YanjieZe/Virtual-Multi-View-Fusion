@@ -53,7 +53,7 @@ class Pipeline:
         num_epoch = self.cfg.num_epoch
         for epoch in range(num_epoch): 
 
-            for scene_id in range(len(scene_dataset)): # loop over scenes
+            for scene_id in range(1): # loop over scenes
                 image_dataset = scene_dataset[scene_id]['imgset']
                 image_dataloader = data.DataLoader(
                     dataset=image_dataset,
@@ -188,6 +188,7 @@ class Pipeline:
         # load self path
         if not model_path is None:
             model.load_state_dict(torch.load(model_path))
+        
 
         return model
 
@@ -206,6 +207,7 @@ class Pipeline:
 def main(cfg):
     
     mode = 'eval'
+    # mode = 'train'
     
     ppl = Pipeline(cfg)
     if mode == 'train':
