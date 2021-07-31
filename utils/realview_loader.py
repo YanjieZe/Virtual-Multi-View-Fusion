@@ -114,7 +114,7 @@ class ImageDataset(data.Dataset):
         # id check
         color_id = self.color_img_list[index].replace('.jpg', '')
         depth_id = self.depth_img_list[index].replace('.png', '')
-        if color_id!=depth_id:
+        if color_id != depth_id:
             raise Exception("ID Error: Color Image and Depth Image not match")
         
         # get path
@@ -143,18 +143,19 @@ class ImageDataset(data.Dataset):
             semantic_label = self.transform(semantic_label)
         semantic_label = torch.from_numpy(np.array(semantic_label))
         
-
+       
         # convert instance image, since the original form can not be used directly
         instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
         instance_label = torch.from_numpy(instance_label.astype(np.int16))
         
+        print(semantic_label)
         # get benchmark semantic label
         valid_class_id = self.cfg.valid_class_ids
         mask = torch.zeros_like(semantic_label).bool()
         for class_id in valid_class_id:
             mask = mask | (semantic_label==class_id)
-
-        semantic_label_ = torch.zeros_like(semantic_label)
+      
+        semantic_label_ = torch.ones_like(semantic_label)*39
         semantic_label_[mask] = semantic_label[mask]
         semantic_label = semantic_label_
 
@@ -162,7 +163,8 @@ class ImageDataset(data.Dataset):
             return self.mapping[idx]
         
         semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label)))).long()
-
+        
+        
         # get pose
         pose_matrix = self.get_pose_matrix(pose_file_name)
         
@@ -254,19 +256,20 @@ class RealviewScannetDataset(data.Dataset):
         
         # process the semantic label into the benchmark label
         semantic_label = torch.from_numpy(semantic_label.astype(np.int32))
+        
         valid_class_id = self.cfg.valid_class_ids
         mask = torch.zeros_like(semantic_label).bool()
         for class_id in valid_class_id:
             mask = mask | (semantic_label==class_id)
-
-        semantic_label_ = torch.zeros_like(semantic_label)
+        
+        semantic_label_ = torch.ones_like(semantic_label)*39
         semantic_label_[mask] = semantic_label[mask]
         semantic_label = semantic_label_
-
+        
         def idx_map(idx):
             return self.mapping[idx]
         semantic_label = torch.from_numpy(np.array(list(map(idx_map, semantic_label)))).long()
-
+        
         # get camera params
         intrinsic_path = os.path.join(self.root_path, scene_id, "exported", "intrinsic")
         intrinsic_color_matrix = self.get_intrinsic_matrix(os.path.join(intrinsic_path, "intrinsic_color.txt"))
@@ -376,6 +379,8 @@ class RealviewScannetDataset(data.Dataset):
 @hydra.main(config_path="../config", config_name="config")
 def main(cfg):
     dataset = RealviewScannetDataset(cfg)
+    imgset = dataset[0]['imgset']
+    imgset[0]
     
 
 if __name__=='__main__':

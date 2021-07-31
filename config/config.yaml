@@ -17,8 +17,8 @@ model:
   backbone: xception # choice: resnet, drn, mobilenet, xception
   # ------------------------------------------------------#
 
-  pretrain: False
-  pretrained_model_path: None
+  pretrain: True
+  pretrained_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch19.pth
   # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
   num_classes: 21
   output_stride: 16
@@ -35,7 +35,7 @@ optimizer:
   weight_decay: 0.99
 
 data_loader:
-  batch_size: 2
+  batch_size: 4
   num_workers: 4
 
 num_epoch: 20
@@ -46,13 +46,16 @@ render:
   elevation: 0
   azim_angle: 0
 
-# Here are classes used in the benchmark
+visdom:
+  use: True
+  env: YanjieZe
+
+# Here are 20 classes used in the benchmark
 # we set background and other furnitures as one class
+# This means, the background's id is 39(origin) and 19(in benchmark)
 benchmark_labels: ['wall', 'floor', 'cabinet', 'bed', 'chair', 'sofa', 'table', 'door', 'window', 'bookshelf', 'picture', 'counter', 'desk', 'curtain', 'refrigerator', 'shower curtain', 'toilet', 'sink', 'bathtub', 'otherfurniture']
 valid_class_ids: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 24, 28, 33, 34, 36, 39]
 
 
-visdom:
-  use: False
-  env: YanjieZe
+
 

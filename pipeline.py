@@ -69,6 +69,7 @@ class Pipeline:
                     img = batch['color_img'].to(device)
                     semantic_label = batch['semantic_label'].to(device)
                     #instance_label = batch['instance_label'].to(device)
+                  
 
                     pred = model(img)
                     
@@ -206,8 +207,8 @@ class Pipeline:
 @hydra.main(config_path="config", config_name="config")
 def main(cfg):
     
-    mode = 'eval'
-    # mode = 'train'
+    # mode = 'eval'
+    mode = 'train'
     
     ppl = Pipeline(cfg)
     if mode == 'train':

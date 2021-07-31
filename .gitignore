@@ -13,3 +13,9 @@ outputs/
 utils/__pycache__/
 
 utils/outputs/
+
+multirun/
+
+*/__pycache__/
+
+__pycache__/
