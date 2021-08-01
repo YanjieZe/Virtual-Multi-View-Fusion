@@ -29,9 +29,9 @@ class Pipeline3D:
             single_scene_data = scene_dataset[scene_id]
 
             image_dataset = single_scene_data['imgset']
-            pc_xyz = single_scene_data['point_cloud_xyz']
-            pc_semantic_label = single_scene_data['semantic_label']
-            intrinsic_depth = single_scene_data['intrinsic_depth']
+            pc_xyz = single_scene_data['point_cloud_xyz'].to(device)
+            pc_semantic_label = single_scene_data['semantic_label'].to(device)
+            intrinsic_depth = single_scene_data['intrinsic_depth'].to(device)
 
             # img loader
             image_dataloader = data.DataLoader(
@@ -57,19 +57,19 @@ class Pipeline3D:
                 preds = model(imgs)
                 
                 for i in range(imgs.shape[0]): #single data point
-                    depth_img = depth_imgs[i]
-                    img = imgs[i]
-                    pose_matrix = pose_matrixs[i]
-                    pred = preds[i]
-                    print(i)
+                    depth_img = depth_imgs[i].to(device)
+                    img = imgs[i].to(device)
+                    pose_matrix = pose_matrixs[i].to(device)
+                    pred = preds[i].to(device)
+                    
                     fusion_machine.projection(depth_img=depth_img,
                                             pose_matrix=pose_matrix,
                                             feature_img=pred,
                                             threshold=5.0)
                 break
 
-        
             pc_features = fusion_machine.get_features()
+            # TODO: continuing this module
 
     def get_model(self, model_path=None):
         # load model

@@ -55,8 +55,10 @@ class Fusioner:
 
         FIXME: Get this function right
         """
+        print('-------------------------------------------------------------------------')
         LargeNum = 500
-
+        device = depth_img.device
+        
         # # one method 
         extrinsic = torch.inverse(pose_matrix)
 
@@ -68,15 +70,15 @@ class Fusioner:
         rotation_matrix = extrinsic[:3,:3] # 3*3
         translation_vector = extrinsic[:3,3].unsqueeze(1) # 3*1
         
-        translation_vector = (torch.ones(self.pc.shape[0])*translation_vector).T.unsqueeze(2)# num_point*3*1
+        translation_vector = (torch.ones(self.pc.shape[0]).to(device)*translation_vector).T.unsqueeze(2)# num_point*3*1
         
         
         # FIXME: check the accuracy of code
         # intrinsic_color = self.intrinsic_color[:3,:4]
         intrinsic_depth = self.intrinsic_depth[:3,:4]
         
-        extension = torch.ones(self.pc.shape[0]).unsqueeze(1).unsqueeze(1)
-        
+        extension = torch.ones(self.pc.shape[0]).unsqueeze(1).unsqueeze(1).to(device)
+
         # use extrinsic
         point_clouds = torch.hstack([self.pc, extension])
         project_points = torch.matmul(extrinsic, point_clouds)
@@ -105,9 +107,9 @@ class Fusioner:
         project_points_depth = project_points_depth.squeeze(2)[...,0:2].long()
         row_bound = depth_img.shape[0]
         colum_bound = depth_img.shape[1]
-        up_bound = torch.from_numpy(np.array([row_bound, colum_bound]))
+        up_bound = torch.from_numpy(np.array([row_bound, colum_bound])).to(device)
         
-        low_bound = torch.from_numpy(np.array([0, 0]))
+        low_bound = torch.from_numpy(np.array([0, 0])).to(device)
         # bounded mask computation
         
         mask = project_points_depth<up_bound
@@ -122,11 +124,14 @@ class Fusioner:
         gc.collect()
 
         depth_real = torch.ones(self.pc.shape[0])*(LargeNum)
+        depth_real = depth_real.to(device)
         
         
         # depth check
         
         # get depth
+        if device!='cpu':
+            mask = mask.cpu()
         for i in tqdm(list(np.where(mask)[0]), desc='Get Real Depth'):
             depth_real[i] = depth_img[ project_points_depth[i][0], project_points_depth[i][1] ]
         
@@ -139,8 +144,10 @@ class Fusioner:
         if self.use_gt: # use ground truth label img
             
             if self.feature_vector is None:
-                self.feature_vector = torch.zeros(self.pc.shape[0])
+                self.feature_vector = torch.zeros(self.pc.shape[0]).to(device)
             if self.collection_method == 'average':
+                if device!='cpu':
+                    depth_mask = depth_mask.cpu()
                 for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
                     self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
                     
@@ -152,16 +159,18 @@ class Fusioner:
        
         else: # use output of our model
             if self.feature_vector is None:
-               self.feature_vector = torch.zeros([self.pc.shape[0], feature_img.shape[0]])
+               self.feature_vector = torch.zeros([self.pc.shape[0], feature_img.shape[0]]).to(device)
             if self.collection_method == 'average':
                 feature_img = feature_img.permute(1,2,0)
+                if device!='cpu':
+                    depth_mask = depth_mask.cpu()
                 for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
                     self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
                     self.counting_vector[i] += 1
             else:
                 raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
                     
-       
+        
         
 
     def get_features(self):
@@ -170,10 +179,12 @@ class Fusioner:
         """
         if self.collection_method == 'average':
             for i in tqdm(list(np.where(self.counting_vector)[0]),desc='Get Avg Features'):
-
                 self.feature_vector[i] = self.feature_vector[i] / self.counting_vector[i]
 
-            return self.feature_vector.long()
+            if self.use_gt:
+                return self.feature_vector.long()
+            else:
+                return self.feature_vector
         else:
             raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
        
