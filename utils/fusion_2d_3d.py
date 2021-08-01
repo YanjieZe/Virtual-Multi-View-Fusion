@@ -55,7 +55,7 @@ class Fusioner:
 
         FIXME: Get this function right
         """
-        print('-------------------------------------------------------------------------')
+       
         LargeNum = 500
         device = depth_img.device
         
@@ -132,7 +132,8 @@ class Fusioner:
         # get depth
         if device!='cpu':
             mask = mask.cpu()
-        for i in tqdm(list(np.where(mask)[0]), desc='Get Real Depth'):
+        # for i in tqdm(list(np.where(mask)[0]), desc='Get Real Depth'):
+        for i in list(np.where(mask)[0]):
             depth_real[i] = depth_img[ project_points_depth[i][0], project_points_depth[i][1] ]
         
 
@@ -148,7 +149,8 @@ class Fusioner:
             if self.collection_method == 'average':
                 if device!='cpu':
                     depth_mask = depth_mask.cpu()
-                for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                # for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                for i in list(np.where(depth_mask)[0]):
                     self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
                     
                     # count the img that have been used in projection
@@ -164,7 +166,8 @@ class Fusioner:
                 feature_img = feature_img.permute(1,2,0)
                 if device!='cpu':
                     depth_mask = depth_mask.cpu()
-                for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                # for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                for i in list(np.where(depth_mask)[0]):
                     self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
                     self.counting_vector[i] += 1
             else:
@@ -178,7 +181,8 @@ class Fusioner:
         Get the collected features
         """
         if self.collection_method == 'average':
-            for i in tqdm(list(np.where(self.counting_vector)[0]),desc='Get Avg Features'):
+            # for i in tqdm(list(np.where(self.counting_vector)[0]),desc='Get Avg Features'):
+            for i in list(np.where(self.counting_vector)[0]):
                 self.feature_vector[i] = self.feature_vector[i] / self.counting_vector[i]
 
             if self.use_gt:

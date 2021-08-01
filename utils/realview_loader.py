@@ -160,7 +160,7 @@ class ImageDataset(data.Dataset):
         for class_id in valid_class_id:
             mask = mask | (semantic_label==class_id)
       
-        semantic_label_ = torch.ones_like(semantic_label)*39
+        semantic_label_ = torch.zeros_like(semantic_label)
         semantic_label_[mask] = semantic_label[mask]
         semantic_label = semantic_label_
 
@@ -182,7 +182,7 @@ class ImageDataset(data.Dataset):
         
     def get_vaild_class_mapping(self):
         valid_class_ids = self.cfg.valid_class_ids
-        max_id = valid_class_ids[-1]
+        max_id = valid_class_ids[0]
         mapping = np.ones(max_id+1)*valid_class_ids.index(max_id)
         
         for i in range(max_id+1):
@@ -267,7 +267,7 @@ class RealviewScannetDataset(data.Dataset):
         for class_id in valid_class_id:
             mask = mask | (semantic_label==class_id)
         
-        semantic_label_ = torch.ones_like(semantic_label)*39
+        semantic_label_ = torch.zeros_like(semantic_label)
         semantic_label_[mask] = semantic_label[mask]
         semantic_label = semantic_label_
         
@@ -337,7 +337,7 @@ class RealviewScannetDataset(data.Dataset):
 
     def get_vaild_class_mapping(self):
         valid_class_ids = self.cfg.valid_class_ids
-        max_id = valid_class_ids[-1]
+        max_id = valid_class_ids[0]
         mapping = np.ones(max_id+1)*valid_class_ids.index(max_id)
         
         for i in range(max_id+1):

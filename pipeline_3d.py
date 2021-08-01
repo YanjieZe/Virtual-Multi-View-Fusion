@@ -5,6 +5,8 @@ import torch.utils.data as data
 import os
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.fusion_2d_3d import Fusioner
+from utils.miou import miou_2d, miou_3d
+from tqdm import tqdm
 
 class Pipeline3D:
     """
@@ -36,7 +38,7 @@ class Pipeline3D:
             # img loader
             image_dataloader = data.DataLoader(
                 dataset=image_dataset,
-                batch_size=4,
+                batch_size=self.cfg.data_loader.batch_size,
                 shuffle=False,
                 num_workers=self.cfg.data_loader.num_workers,
                 collate_fn=collate_image)
@@ -48,28 +50,37 @@ class Pipeline3D:
                                 use_gt=False)
 
             # collect features
-            for idx, batch in enumerate(image_dataloader): # loop over image
-                imgs = batch['color_img'].to(device)
-                depth_imgs = batch['depth_img']
-                pose_matrixs = batch['pose_matrix']
-                semantic_labels = batch['semantic_label'].to(device)
-                
-                preds = model(imgs)
-                
-                for i in range(imgs.shape[0]): #single data point
-                    depth_img = depth_imgs[i].to(device)
-                    img = imgs[i].to(device)
-                    pose_matrix = pose_matrixs[i].to(device)
-                    pred = preds[i].to(device)
-                    
-                    fusion_machine.projection(depth_img=depth_img,
-                                            pose_matrix=pose_matrix,
-                                            feature_img=pred,
-                                            threshold=5.0)
-                break
+            process_bar = tqdm(total=len(image_dataset)) # show process
+            batch_size = self.cfg.data_loader.batch_size
 
+            for idx, batch in enumerate(image_dataloader): # loop over image
+                with torch.no_grad():
+                    imgs = batch['color_img'].to(device)
+                    depth_imgs = batch['depth_img']
+                    pose_matrixs = batch['pose_matrix']
+                    semantic_labels = batch['semantic_label'].to(device)
+                    
+                    preds = model(imgs)
+                
+                    for i in range(imgs.shape[0]): #single data point
+                        depth_img = depth_imgs[i].to(device)
+                        img = imgs[i].to(device)
+                        pose_matrix = pose_matrixs[i].to(device)
+                        pred = preds[i].to(device)
+                        
+                        fusion_machine.projection(depth_img=depth_img,
+                                                pose_matrix=pose_matrix,
+                                                feature_img=pred,
+                                                threshold=5.0)
+                
+                process_bar.update(batch_size)
+                
             pc_features = fusion_machine.get_features()
-            # TODO: continuing this module
+            pc_pred_label = torch.max(pc_features, dim=1).indices
+            # get MIOU
+            MIOU = miou_3d(pc_pred_label, pc_semantic_label)
+
+            print(MIOU)
 
     def get_model(self, model_path=None):
         # load model
