@@ -1,3 +1,7 @@
+"""
+Usage:
+from utils.realview_loader import RealviewScannetDataset,collate_image
+"""
 import numpy as np
 import torch
 import torch.utils.data as data
@@ -148,7 +152,8 @@ class ImageDataset(data.Dataset):
         instance_label = convert_instance_image(self.cfg.dataset.label_map, instance_label_name, label_name)
         instance_label = torch.from_numpy(instance_label.astype(np.int16))
         
-        print(semantic_label)
+        # print(semantic_label)
+        
         # get benchmark semantic label
         valid_class_id = self.cfg.valid_class_ids
         mask = torch.zeros_like(semantic_label).bool()

@@ -1,3 +1,7 @@
+"""
+Usage:
+from utils.fusion_2d_3d import Fusioner
+"""
 from PIL import Image
 import numpy as np
 import torch
@@ -23,7 +27,7 @@ class Fusioner:
     """
     Get Mesh, then project them into 2D image, and get feature
     """
-    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color, collection_method='average', use_gt=True):
+    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color=None, collection_method='average', use_gt=True):
         self.pc = point_cloud.unsqueeze(2)
 
         self.feature_vector = None
@@ -42,14 +46,14 @@ class Fusioner:
         self.counting_vector = torch.zeros(self.pc.shape[0]) # used for couting img
 
 
-    def projection(self, depth_img, color_img, pose_matrix, feature_img, threshold=1.0):
+    def projection(self, depth_img,  pose_matrix, feature_img, color_img=None,threshold=1.0):
         """
         Implementation of 2D-3D Fusion Algorithm.
         Params:
             gt: If gt=True, feature img is semantic label img.
                 If gt=False, feature img is the output of the model.
 
-        TODO: Get this function right
+        FIXME: Get this function right
         """
         LargeNum = 500
 
@@ -67,8 +71,8 @@ class Fusioner:
         translation_vector = (torch.ones(self.pc.shape[0])*translation_vector).T.unsqueeze(2)# num_point*3*1
         
         
-        # TODO: check the accuracy of code
-        intrinsic_color = self.intrinsic_color[:3,:4]
+        # FIXME: check the accuracy of code
+        # intrinsic_color = self.intrinsic_color[:3,:4]
         intrinsic_depth = self.intrinsic_depth[:3,:4]
         
         extension = torch.ones(self.pc.shape[0]).unsqueeze(1).unsqueeze(1)
@@ -133,6 +137,7 @@ class Fusioner:
         # collect features
 
         if self.use_gt: # use ground truth label img
+            
             if self.feature_vector is None:
                 self.feature_vector = torch.zeros(self.pc.shape[0])
             if self.collection_method == 'average':
@@ -141,13 +146,21 @@ class Fusioner:
                     
                     # count the img that have been used in projection
                     self.counting_vector[i] += 1
-            else:
+            else:#TODO: add other collection methods like K-nearset-neighbours
+                
                 raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
        
         else: # use output of our model
-
-            pass # TODO: finish this module
-        
+            if self.feature_vector is None:
+               self.feature_vector = torch.zeros([self.pc.shape[0], feature_img.shape[0]])
+            if self.collection_method == 'average':
+                feature_img = feature_img.permute(1,2,0)
+                for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
+                    self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
+                    self.counting_vector[i] += 1
+            else:
+                raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
+                    
        
         
 
@@ -191,20 +204,19 @@ def demo(cfg):
     
     fusion_machine = Fusioner(point_cloud=pc, 
                         intrinsic_depth=intrinsic_depth,
-                        intrinsic_color=intrinsic_color,
+                        # intrinsic_color=intrinsic_color,
                         collection_method='average',
                         use_gt=True)
-
+   
     fusion_machine.projection(depth_img=depth_img, 
-                            color_img=color_img,
+                            # color_img=color_img,
                             pose_matrix=pose_matrix,
                             feature_img=semantic_label,
-                            threshold=5.0
-                            )
+                            threshold=5.0)
 
     feature_vector = fusion_machine.get_features()
 
-    print(feature_vector)
+    print(feature_vector.max())
 
 
 if __name__=='__main__':

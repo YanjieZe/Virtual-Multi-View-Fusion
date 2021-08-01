@@ -6,15 +6,14 @@ import hydra
 import numpy as np
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.virtualview_loader import VirtualviewScannetDataset
-from modeling.deeplab import DeepLab
-from unet import UNet
+
 from visdom import Visdom
-from utils.miou import miou_2d, miou_3d
+from utils.miou import miou_2d
 
 
-class Pipeline:
+class Pipeline2D:
     """
-    A pipeline for train & test 2D images
+    A pipeline for training & evaluating 2D images
     """
     def __init__(self, cfg):
         self.cfg = cfg
@@ -170,12 +169,14 @@ class Pipeline:
     def get_model(self, model_path=None):
         # load model
         if self.cfg.model.model_name=='deeplabv3+':
+            from modeling.deeplab import DeepLab
             backbone = self.cfg.model.backbone
             num_classes = self.cfg.model.num_classes
             output_stride = self.cfg.model.output_stride
             model = DeepLab(backbone=backbone, num_classes=num_classes, 
                             output_stride=output_stride)
         elif self.cfg.model.model_name=='unet':
+            from unet import UNet
             num_channels = self.cfg.model.num_channels
             num_classes = self.cfg.model.num_classes
             model = UNet(n_channels=num_channels, n_classes=num_classes)
@@ -210,7 +211,7 @@ def main(cfg):
     # mode = 'eval'
     mode = 'train'
     
-    ppl = Pipeline(cfg)
+    ppl = Pipeline2D(cfg)
     if mode == 'train':
         ppl.train()
     elif mode == 'eval':
