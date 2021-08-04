@@ -3,6 +3,7 @@ import numpy as np
 import hydra
 import torch.utils.data as data
 import os
+from utils.virtualview_loader import VirtualviewScannetDataset
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.fusion_2d_3d import Fusioner
 from utils.miou import miou_2d, miou_3d
@@ -17,6 +18,9 @@ class Pipeline3D:
 
 
     def inference(self):
+        """
+        Use 2D segmentation model to do 3D inference, based on Fusion Algorithm.
+        """
         device = self.get_device()
 
         model_path = self.cfg.evaluation.model_path
@@ -127,10 +131,11 @@ class Pipeline3D:
 
         return dataset
 
+
 @hydra.main(config_path='config', config_name='config')
 def main(cfg):
     ppl = Pipeline3D(cfg)
-    ppl.inference()
+    # ppl.inference()
 
 if __name__=='__main__':
     main()

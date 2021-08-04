@@ -35,8 +35,7 @@ class Renderer:
         """
         return: RGB image, Depth image
         """
-        # ignore warnings 
-        warnings.filterwarnings('ignore')
+        
         
         # camera
         fx = intrinsic_matrix[0][0]
@@ -109,8 +108,11 @@ class Renderer:
         
     
 def demo():
+    # ignore warnings 
+    warnings.filterwarnings('ignore')
+    
     # test_file = "scene0000_00_vh_clean_2.labels.ply"
-    test_file = "data/scene0000_00_vh_clean_2.ply"
+    test_file = "../data/scene0000_00_vh_clean_2.ply"
 
     # create a renderer
     new_renderer = Renderer()

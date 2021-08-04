@@ -3,7 +3,7 @@ dataset:
   train_path: /data/ScanNetV2/scans
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
-  real_view: True # this means we use real view, not virtual view
+  real_view: False # If this is ture, we use real view img. Otherwise, we use virtual view img.
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
 

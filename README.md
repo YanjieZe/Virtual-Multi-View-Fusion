@@ -2,9 +2,15 @@
 My personal implementation of paper: Virtual Multi-view Fusion for 3D Semantic Segmentation (ECCV 2020)
 
 # Usage
-Prepare **ScanNet** Dataset and change your own parameters in **`config/config.yaml`**.
+**First**, install packages this project depends on, including:
+```
+trimesh
+```
+
+**Second**, prepare **ScanNet** Dataset and change your own parameters in **`config/config.yaml`**.
 
 
+**Third**, run the code.
 
 Train & evaluate 2D image (Change mode in the code).
 ```
