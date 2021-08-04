@@ -7,6 +7,8 @@ import math
 os.environ['MUJOCO_GL'] = 'egl'
 os.environ['PYOPENGL_PLATFORM'] = 'egl'
 os.environ['DISPLAY'] = ':0.0'
+import warnings
+
 
 
 
@@ -23,7 +25,7 @@ class Renderer:
     def render_one_image(self,
                         intrinsic_matrix, 
                         pose_matrix, 
-                        z_near=0.5, 
+                        z_near=0.01, 
                         z_far=100, 
                         light_color=[1.0, 1.0, 1.0],# RGB
                         light_intensity=5.0,
@@ -33,6 +35,9 @@ class Renderer:
         """
         return: RGB image, Depth image
         """
+        # ignore warnings 
+        warnings.filterwarnings('ignore')
+        
         # camera
         fx = intrinsic_matrix[0][0]
         fy = intrinsic_matrix[1][1]
@@ -104,8 +109,8 @@ class Renderer:
         
     
 def demo():
-    test_file = "scene0000_00_vh_clean.ply"
-    #test_file = "data/scene0000_00_vh_clean_2.labels.ply"
+    # test_file = "scene0000_00_vh_clean_2.labels.ply"
+    test_file = "data/scene0000_00_vh_clean_2.ply"
 
     # create a renderer
     new_renderer = Renderer()
@@ -114,16 +119,26 @@ def demo():
     new_renderer.load_3dmesh(test_file)
 
     # camera params load
-    pose_matrix = new_renderer.get_camera_pose_matrix(0, 0, 0, 0, 0, 0)
-    pose_matrix = np.array([[-0.955421, 0.119616, -0.269932, 2.655830],
-    [0.295248, 0.388339 ,-0.872939, 2.981598],
-    [0.000408 ,-0.913720, -0.406343, 1.368648],
-    [0.000000, 0.000000, 0.000000, 1.000000]])
+    # 50 0 30 n
+    # 50 30 0 n
+    # 0 50 30 n
+    # 0 30 50 n
+    # 30 50 0 
+    # 30 0 50 
+    pose_matrix = new_renderer.get_camera_pose_matrix(5.5, 1, 4, 40, 0, 30)
+
     ### intrinsic_matrix = new_renderer.get_camera_intrinsic_matrix()
     ### or
     intrinsic_matrix = np.array([
         [1169.621094 ,0.000000, 646.295044, 0.000000],
     [0.000000, 1167.105103, 489.927032, 0.000000],
+    [0.000000 , 0.000000 ,1.000000 , 0.000000],
+    [0.000000 ,0.000000 ,0.000000 ,1.000000],
+    ])
+
+    intrinsic_matrix = np.array([
+        [300 ,0.000000, 640, 0.000000],
+    [0.000000, 200, 480, 0.000000],
     [0.000000 , 0.000000 ,1.000000 , 0.000000],
     [0.000000 ,0.000000 ,0.000000 ,1.000000],
     ])
