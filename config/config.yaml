@@ -49,7 +49,11 @@ render:
 # create virtual imgs
 img_creator:
   save_path: /vritual_img_dataset/
-  
+  fx: 300
+  fy: 200
+  cx: 640
+  cy: 680
+
 
 visdom:
   use: False

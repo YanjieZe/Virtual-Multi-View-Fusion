@@ -3,6 +3,12 @@ import torch.utils.data as data
 import os
 import torch
 from plyfile import PlyData
+try:
+    from convert_scannet_instance_image import convert_instance_image
+    from export_trainmesh_for_evaluation import get_train_mesh
+except:
+    from utils.convert_scannet_instance_image import convert_instance_image
+    from utils.export_trainmesh_for_evaluation import get_train_mesh
 
 class VirtualviewScannetDataset(data.Dataset):
     """

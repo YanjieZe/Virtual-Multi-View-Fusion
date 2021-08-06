@@ -11,7 +11,6 @@ import warnings
 
 
 
-
 class Renderer:
     """
     A Renderer that can load point cloud, compute pose matrix, and render imgs.
@@ -40,7 +39,6 @@ class Renderer:
         """
         return: RGB image, Depth image
         """
-        
         
         # camera
         fx = intrinsic_matrix[0][0]
