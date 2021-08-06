@@ -13,13 +13,18 @@ import warnings
 
 
 class Renderer:
+    """
+    A Renderer that can load point cloud, compute pose matrix, and render imgs.
+    """
     def __init__(self):
-        self.scene = None
+        self.scene = pyrender.Scene()
 
     def load_3dmesh(self, mesh_file):
         fuze_trimesh = trimesh.load(mesh_file)
         mesh = pyrender.Mesh.from_trimesh(fuze_trimesh)
-        self.scene = pyrender.Scene()
+        self.scene.add(mesh)
+
+    def add_mesh(self, mesh):
         self.scene.add(mesh)
         
     def render_one_image(self,

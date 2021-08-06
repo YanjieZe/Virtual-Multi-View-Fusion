@@ -83,6 +83,8 @@ class VirtualviewScannetDataset(data.Dataset):
         pc_xyz, pc_color = torch.from_numpy(pc_xyz).double(), torch.from_numpy(pc_color).double()
 
         return { # 'imgset':imgset, 
+                'scene_name':scene_id,
+                'mesh_file_path':mesh_file_path,
                 'point_cloud_xyz':pc_xyz,
                 'point_cloud_color':pc_color,
                 'mesh_vertices':mesh_vertices, 

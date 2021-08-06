@@ -46,6 +46,11 @@ render:
   elevation: 0
   azim_angle: 0
 
+# create virtual imgs
+img_creator:
+  save_path: /vritual_img_dataset/
+  
+
 visdom:
   use: False
   env: YanjieZe
