@@ -53,6 +53,7 @@ img_creator:
   fy: 200
   cx: 640
   cy: 680
+  img_num: 4 # number of imgs created for one scene
 
 
 visdom:

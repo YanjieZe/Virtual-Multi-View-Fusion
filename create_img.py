@@ -13,15 +13,19 @@ class ImgCreator:
         return self.scene_dataset[idx]
 
     def create_imgs_from_one_scene(self, one_scene):
+        """
+        Params: one scene's data(directly taken from the dataset)
+        """
         scene_name = one_scene['scene_name']
         mesh_file_path = one_scene['mesh_file_path']
         pc_xyz = one_scene['point_cloud_xyz']
 
         multi_renderer = MultiRenderer(mesh_file_path)
-        multi_renderer.load_camera_intrinsic_matrix(fx=self.cfg.img_creator.fx, 
-                                                    fy=self.cfg.img_creator.fy, 
-                                                    cx=self.cfg.img_creator.cx, 
-                                                    cy=self.cfg.img_creator.cy)
+        intrinsic = multi_renderer.load_camera_intrinsic_matrix(fx=self.cfg.img_creator.fx, 
+                                                                fy=self.cfg.img_creator.fy, 
+                                                                cx=self.cfg.img_creator.cx, 
+                                                                cy=self.cfg.img_creator.cy)
+        color_list, depth_list, pose_list = multi_renderer.render_some_images(img_num=self.cfg.img_creator.img_num)
         
         
     
