@@ -19,3 +19,9 @@ multirun/
 */__pycache__/
 
 __pycache__/
+
+vritual_img_dataset/
+
+*.png
+
+*.txt

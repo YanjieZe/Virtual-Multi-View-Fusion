@@ -4,7 +4,7 @@ My personal implementation of paper: Virtual Multi-view Fusion for 3D Semantic S
 # Usage
 **First**, install packages this project depends on, including:
 ```
-trimesh
+trimesh, pypng
 ```
 
 **Second**, prepare **ScanNet** Dataset and change your own parameters in **`config/config.yaml`**.
@@ -22,6 +22,10 @@ Do inference on 3D points with 2D fusion.
 python pipeline_3d.py
 ```
 
+Create virtual view imgs.
+```
+python create_img.py
+```
 
 # 2D-3D Fusion Algorithm
 1. Use 3D point, extrinsic and intrinsic, and get project point $P_{proj}$. 
@@ -41,4 +45,4 @@ python pipeline_3d.py
 2. 2D 模型只能处理较小图片（128\*128），无法处理原尺寸的图片（480\*640）。（训练和测试的时候都只能resize）
 3. fusion算法投影坐标还有点问题，depth check的差距比较大，需要threshold设置的很大才有用。
 4. 结合fusion算法在3D做inference的时候，不能直接用原图片，会cuda out of memory。只能先把图片resize再做。如何处理？因此导致了目前inference其实是不对的。
-5. virtual view的暂时还没有完成，只完成了一个简单的renderer。
+5. virtual view差不多完成了，现在关键是怎么找到角度。

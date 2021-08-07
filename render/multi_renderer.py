@@ -103,16 +103,20 @@ class MultiRenderer:
         z_min = self.pc_range[4]
         z_max = self.pc_range[5]
         
-        # TODO: how to sample? and change the roll,pitch,yaw
+        # TODO: 修改拍摄位置和拍摄角度
         for corner_corordinate in self.top_corners:
-            
             single_pose = self.get_camera_pose_matrix(x=corner_corordinate[0],
                                                     y=corner_corordinate[1],
                                                     z=corner_corordinate[2],
                                                     roll=40, # degree
                                                     pitch=0,
                                                     yaw=30)
-            color_img, depth_img = self.render_one_image(single_pose)
+            try: # if render fails, skip
+                color_img, depth_img = self.render_one_image(single_pose)
+            except:
+                print('This pose fail to be rendered:\n', single_pose)
+                print('Position is:',corner_corordinate)
+                continue
             color_list.append(color_img)
             depth_list.append(depth_img)
             pose_list.append(single_pose)
