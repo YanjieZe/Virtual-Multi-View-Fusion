@@ -1,6 +1,7 @@
 import numpy as np
 import trimesh
 import pyrender
+from pyrender import RenderFlags
 import matplotlib.pyplot as plt
 import os
 import math
@@ -63,7 +64,8 @@ class Renderer:
         r = pyrender.OffscreenRenderer(viewport_width=viewport_width,
                                         viewport_height=viewport_height,
                                     point_size=point_size)
-        color, depth = r.render(self.scene)
+        flags =  RenderFlags.SHADOWS_DIRECTIONAL
+        color, depth = r.render(self.scene, flags=flags)
 
         return color, depth
         

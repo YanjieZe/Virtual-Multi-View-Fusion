@@ -34,13 +34,15 @@ class MultiRenderer:
 
         # range: x_min, x_max, y_min, y_max, z_min, z_max
         self.pc_range = self.get_3dminmax(self.pc_xyz)
-        self.top_corners = self.get_top_corners(self.pc_xyz)
-        
+        self.available_poses = self.get_available_poses(self.pc_xyz)
+    
+
     @staticmethod
     def load_3dmesh(mesh_file_path:str):
         fuze_trimesh = trimesh.load(mesh_file_path)
         mesh = pyrender.Mesh.from_trimesh(fuze_trimesh)
         return mesh
+
 
     @staticmethod
     def get_3dminmax(pc_xyz:np.array):
@@ -55,25 +57,27 @@ class MultiRenderer:
         z_max = np.max(pc_xyz[2])
         return [x_min,x_max,y_min,y_max,z_min,z_max]
 
+
     @staticmethod
-    def get_top_corners(pc_xyz:np.array):
+    def get_available_poses(pc_xyz:np.array):
         """
         Return: four top corners of the point cloud
         """
-        x_min = np.min(pc_xyz[0])
-        x_max = np.max(pc_xyz[0])
-        y_min = np.min(pc_xyz[1])
-        y_max = np.max(pc_xyz[1])
-        z_min = np.min(pc_xyz[2])
-        z_max = np.max(pc_xyz[2])
+        # TODO: check whether we need to divide 10
+        x_min = np.min(pc_xyz[0])/10
+        x_max = np.max(pc_xyz[0])/10
+        y_min = np.min(pc_xyz[1])/10
+        y_max = np.max(pc_xyz[1])/10
+        z_min = np.min(pc_xyz[2])/10
+        z_max = np.max(pc_xyz[2])/10
 
-        corners = []
-        corners.append(np.array([x_min,y_min,z_max]))
-        corners.append(np.array([x_min,y_max,z_max]))
-        corners.append(np.array([x_max,y_min,z_max]))
-        corners.append(np.array([x_max,y_max,z_max]))
+        available_poses = []
+        # a pose is: x, y, z, roll, pitch, yaw
+        available_poses.append([1., 1., 2.9, 60, 0, 320])
 
-        return corners
+        # TODO: add other poses
+
+        return available_poses
 
     def render_one_image(self, pose):
         """
@@ -104,22 +108,23 @@ class MultiRenderer:
         z_max = self.pc_range[5]
         
         # TODO: 修改拍摄位置和拍摄角度
-        for corner_corordinate in self.top_corners:
-            single_pose = self.get_camera_pose_matrix(x=corner_corordinate[0],
-                                                    y=corner_corordinate[1],
-                                                    z=corner_corordinate[2],
-                                                    roll=40, # degree
-                                                    pitch=0,
-                                                    yaw=30)
+        for pose in self.available_poses:
+           
+            pose_matrix = self.get_camera_pose_matrix(x=pose[0],
+                                                    y=pose[1],
+                                                    z=pose[2],
+                                                    roll=pose[3], # degree
+                                                    pitch=pose[4],
+                                                    yaw=pose[5])
+            
             try: # if render fails, skip
-                color_img, depth_img = self.render_one_image(single_pose)
+                color_img, depth_img = self.render_one_image(pose_matrix)
             except:
-                print('This pose fail to be rendered:\n', single_pose)
-                print('Position is:',corner_corordinate)
+                print('This pose fail to be rendered: (x,y,z,roll,pitch,yaw)\n', pose)
                 continue
             color_list.append(color_img)
             depth_list.append(depth_img)
-            pose_list.append(single_pose)
+            pose_list.append(pose_matrix)
 
         return color_list, depth_list, pose_list
     
