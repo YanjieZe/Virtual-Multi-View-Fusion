@@ -31,11 +31,11 @@ class Renderer:
                         intrinsic_matrix, 
                         pose_matrix, 
                         z_near=0.01, 
-                        z_far=100, 
+                        z_far=10, 
                         light_color=[1.0, 1.0, 1.0],# RGB
                         light_intensity=5.0,
-                        viewport_width=640,
-                        viewport_height=400,
+                        viewport_width=960,
+                        viewport_height=480,
                         point_size=0.1):
         """
         return: RGB image, Depth image

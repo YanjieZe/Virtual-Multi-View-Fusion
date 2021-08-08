@@ -8,6 +8,8 @@ import numpy as np
 from plyfile import PlyData
 import pyrender
 import math
+from utils.color_to_label import color_to_label
+
 
 class MultiRenderer:
     """
@@ -74,23 +76,43 @@ class MultiRenderer:
         available_poses = []
         # a pose is: x, y, z, roll, pitch, yaw
         available_poses.append([1., 1., 2.9, 60, 0, 320])
-
-        # TODO: add other poses
+        
+        # TODO: add other poses. Currently only one pose.
 
         return available_poses
 
-    def render_one_image(self, pose):
+    def render_one_image(self, pose, width, height):
         """
-        Params: a pose matrix
+        Params: a pose matrix, width, height
 
         Return: a color img, a depth img
         """
         renderer = Renderer()
-        renderer.add_mesh(self.load_3dmesh(self.mesh_file_path))
-        color, depth = renderer.render_one_image(self.intrinsic, pose)
+        renderer.add_mesh(self.load_3dmesh(self.mesh_file_path)) # Note that it's necessary to reload the mesh file
+        color, depth = renderer.render_one_image(intrinsic_matrix=self.intrinsic, 
+                                                pose_matrix=pose, 
+                                                viewport_height=height, 
+                                                viewport_width=width)
         return color, depth
 
-    def render_some_images(self, img_num:int=4):
+    def render_one_groundtruth(self, pose, width, height):
+        """
+        Params: a pose matrix, width, height
+
+        Return: ground truth img
+        """
+        renderer = Renderer()
+        gt_mesh_file_path = self.mesh_file_path.replace('.ply', '.labels.ply')
+        renderer.add_mesh(self.load_3dmesh(gt_mesh_file_path)) # Note that it's necessary to reload the mesh file
+        color, _ = renderer.render_one_image(intrinsic_matrix=self.intrinsic, 
+                                                pose_matrix=pose, 
+                                                viewport_height=height, 
+                                                viewport_width=width)
+
+        gt_img = color_to_label(color)
+        return gt_img
+
+    def render_some_images(self, img_num:int=4, width:int=640, height:int=480):
         """
         Params: number of imgs to need
         
@@ -99,7 +121,7 @@ class MultiRenderer:
         color_list = []
         depth_list = []
         pose_list = []
-
+        gt_list = []
         x_min = self.pc_range[0]
         x_max = self.pc_range[1]
         y_min = self.pc_range[2]
@@ -107,7 +129,7 @@ class MultiRenderer:
         z_min = self.pc_range[4]
         z_max = self.pc_range[5]
         
-        # TODO: 修改拍摄位置和拍摄角度
+
         for pose in self.available_poses:
            
             pose_matrix = self.get_camera_pose_matrix(x=pose[0],
@@ -118,15 +140,18 @@ class MultiRenderer:
                                                     yaw=pose[5])
             
             try: # if render fails, skip
-                color_img, depth_img = self.render_one_image(pose_matrix)
+                color_img, depth_img = self.render_one_image(pose=pose_matrix, width=width, height=height)
+                color_img_gt= self.render_one_groundtruth(pose=pose_matrix, width=width, height=height)
+
             except:
-                print('This pose fail to be rendered: (x,y,z,roll,pitch,yaw)\n', pose)
+                print('This pose fail to be rendered (x,y,z,roll,pitch,yaw):\n', pose)
                 continue
             color_list.append(color_img)
             depth_list.append(depth_img)
             pose_list.append(pose_matrix)
+            gt_list.append(color_img_gt)
 
-        return color_list, depth_list, pose_list
+        return color_list, depth_list, pose_list, gt_list
     
 
     @staticmethod

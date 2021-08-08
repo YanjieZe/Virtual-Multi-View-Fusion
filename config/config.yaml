@@ -54,6 +54,8 @@ img_creator:
   cx: 640
   cy: 680
   img_num: 4 # number of imgs created for one scene
+  width: 960
+  height: 480
 
 
 visdom:
