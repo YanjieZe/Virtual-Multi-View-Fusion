@@ -99,29 +99,32 @@ class MultiRenderer:
         """
         Params: a pose matrix, width, height
 
-        Return: ground truth img
+        Return: color label img, label img
         """
         renderer = Renderer()
         gt_mesh_file_path = self.mesh_file_path.replace('.ply', '.labels.ply')
         renderer.add_mesh(self.load_3dmesh(gt_mesh_file_path)) # Note that it's necessary to reload the mesh file
-        color, _ = renderer.render_one_image(intrinsic_matrix=self.intrinsic, 
+
+        color_img, _ = renderer.render_one_image(intrinsic_matrix=self.intrinsic, 
                                                 pose_matrix=pose, 
                                                 viewport_height=height, 
-                                                viewport_width=width)
+                                                viewport_width=width,
+                                                is_gt=True)
 
-        gt_img = color_to_label(color)
-        return gt_img
+        label_img = color_to_label(color_img)
+        return color_img, label_img
 
     def render_some_images(self, img_num:int=4, width:int=640, height:int=480):
         """
         Params: number of imgs to need
         
-        Return: list of Color img, list of Depth img, list of Pose
+        Return: color_list, depth_list, pose_list, color_label_list, label_list
         """
         color_list = []
         depth_list = []
         pose_list = []
-        gt_list = []
+        color_label_list = []
+        label_list = []
         x_min = self.pc_range[0]
         x_max = self.pc_range[1]
         y_min = self.pc_range[2]
@@ -141,7 +144,7 @@ class MultiRenderer:
             
             try: # if render fails, skip
                 color_img, depth_img = self.render_one_image(pose=pose_matrix, width=width, height=height)
-                color_img_gt= self.render_one_groundtruth(pose=pose_matrix, width=width, height=height)
+                color_label_img, label_img= self.render_one_groundtruth(pose=pose_matrix, width=width, height=height)
 
             except:
                 print('This pose fail to be rendered (x,y,z,roll,pitch,yaw):\n', pose)
@@ -149,9 +152,10 @@ class MultiRenderer:
             color_list.append(color_img)
             depth_list.append(depth_img)
             pose_list.append(pose_matrix)
-            gt_list.append(color_img_gt)
+            color_label_list.append(color_label_img)
+            label_list.append(label_img)
 
-        return color_list, depth_list, pose_list, gt_list
+        return color_list, depth_list, pose_list, color_label_list, label_list
     
 
     @staticmethod

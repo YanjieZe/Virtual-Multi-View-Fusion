@@ -45,9 +45,9 @@ class ImgCreator:
 
 
     @staticmethod
-    def save_gt_img(img:np.array, save_path:str):
+    def save_label_img(img:np.array, save_path:str):
         """
-        Save a gt img
+        Save a label img
         """
         img_uint16 = np.round(img).astype(np.uint16)
         w_depth = pypng.Writer(img.shape[1], img.shape[0], greyscale=True, bitdepth=16)
@@ -68,7 +68,7 @@ class ImgCreator:
                                                                 fy=self.cfg.img_creator.fy, 
                                                                 cx=self.cfg.img_creator.cx, 
                                                                 cy=self.cfg.img_creator.cy)
-        color_list, depth_list, pose_list,gt_list = multi_renderer.render_some_images(
+        color_list, depth_list, pose_list, color_label_list, label_list = multi_renderer.render_some_images(
                                                 img_num=self.cfg.img_creator.img_num,
                                                 width=self.cfg.img_creator.width,
                                                 height=self.cfg.img_creator.height)
@@ -79,7 +79,9 @@ class ImgCreator:
             color_path = os.path.join(scene_path, 'color')
             depth_path = os.path.join(scene_path, 'depth')
             pose_path = os.path.join(scene_path, 'pose')
-            gt_path = os.path.join(scene_path, 'label')
+            color_label_path = os.path.join(scene_path, 'color_label')
+            label_path = os.path.join(scene_path, 'label')
+
             if not os.path.exists(scene_path):
                 os.mkdir(scene_path)
             if not os.path.exists(color_path):
@@ -88,14 +90,18 @@ class ImgCreator:
                 os.mkdir(depth_path)
             if not os.path.exists(pose_path):
                 os.mkdir(pose_path)
-            if not os.path.exists(gt_path):
-                os.mkdir(gt_path)
+            if not os.path.exists(color_label_path):
+                os.mkdir(color_label_path)
+            if not os.path.exists(label_path):
+                os.mkdir(label_path)
+
             for i in range(len(color_list)):
                 self.save_color_img(img=color_list[i], save_path=os.path.join(color_path,'%u.jpg'%i))
-                self.save_gt_img(img=gt_list[i], save_path=os.path.join(gt_path, '%u.png'%i))
+                self.save_label_img(img=label_list[i], save_path=os.path.join(label_path, '%u.png'%i))
                 self.save_depth_img(img=depth_list[i], save_path=os.path.join(depth_path,'%u.png'%i))
                 self.save_pose(pose=pose_list[i], save_path=os.path.join(pose_path, '%u.txt'%i))
-
+                self.save_color_img(img=color_label_list[i], save_path=os.path.join(color_label_path, '%u.jpg'%i))
+                
     
 @hydra.main(config_path='config', config_name='config')
 def main(cfg):

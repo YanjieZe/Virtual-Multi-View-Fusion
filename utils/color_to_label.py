@@ -55,20 +55,27 @@ def projection(color):
     """
     color -> label id -> id in ground truth
     """
-    import pdb; pdb.set_trace()
     color = tuple(color)
+    
     color_palette = create_color_palette()
     try: # label exsit
         label_id = color_palette.index(color)
         gt_id = valid_class_ids.index(label_id)
     except: # not exsit
         gt_id = 0
-    # TODO: change the render way
+
     return gt_id
 
 
 def color_to_label(gt_img:np.array):
+    """
+    Params: Ground Truth Color Img
+    
+    Return: Label Img
+    """
     label_img = np.array([[projection(gt_img[i][j]) for j in range(gt_img.shape[1])]for i in range(gt_img.shape[0])])
+    print(label_img.max())
+    
     return label_img
 
 

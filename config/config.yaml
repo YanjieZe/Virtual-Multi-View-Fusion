@@ -48,7 +48,7 @@ render:
 
 # create virtual imgs
 img_creator:
-  save_path: /home/yanjie/zyj_test/virtual-multi-view/vritual_img_dataset/
+  save_path: /home/yanjie/zyj_test/virtual-multi-view/virtual_img_dataset/
   fx: 300
   fy: 200
   cx: 640

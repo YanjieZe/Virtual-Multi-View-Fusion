@@ -36,7 +36,8 @@ class Renderer:
                         light_intensity=5.0,
                         viewport_width=960,
                         viewport_height=480,
-                        point_size=0.1):
+                        point_size=0.1,
+                        is_gt=False):
         """
         return: RGB image, Depth image
         """
@@ -64,7 +65,10 @@ class Renderer:
         r = pyrender.OffscreenRenderer(viewport_width=viewport_width,
                                         viewport_height=viewport_height,
                                     point_size=point_size)
-        flags =  RenderFlags.SHADOWS_DIRECTIONAL
+        if is_gt:
+            flags =  RenderFlags.FLAT
+        else:
+            flags = RenderFlags.SHADOWS_DIRECTIONAL
         color, depth = r.render(self.scene, flags=flags)
 
         return color, depth
