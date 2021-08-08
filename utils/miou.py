@@ -38,12 +38,12 @@ def miou_2d(pred, label):
             confusion_matrix += np.bincount(category_count, minlength=(max_class+1)**2).reshape([max_class+1,max_class+1])
             
             
-        
         Intersection = np.diag(confusion_matrix)
         Union = confusion_matrix.sum(axis=0) + confusion_matrix.sum(axis=1) - np.diag(confusion_matrix)
         
         IOU = Intersection / Union
-        MIOU.append(np.nanmean(IOU))
+        IOU = IOU[IOU>=0.01] # filter some noise
+        MIOU.append(np.nanmean(IOU)) # nanmean
     
     MIOU = np.array(MIOU)
     return MIOU

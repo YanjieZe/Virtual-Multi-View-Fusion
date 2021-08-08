@@ -6,10 +6,11 @@ import hydra
 import numpy as np
 from utils.realview_loader import RealviewScannetDataset, collate_image
 from utils.virtualview_loader import VirtualviewScannetDataset
+from utils.color_to_label import label_to_color
 
 from visdom import Visdom
 from utils.miou import miou_2d
-
+from PIL import Image
 
 class Pipeline2D:
     """
@@ -40,7 +41,7 @@ class Pipeline2D:
                 weight_decay=self.cfg.optimizer.weight_decay)
         
         # loss function
-        loss_function = torch.nn.CrossEntropyLoss()
+        loss_function = torch.nn.CrossEntropyLoss(reduction='sum')
 
         model.train()
 
@@ -57,7 +58,7 @@ class Pipeline2D:
                 image_dataloader = data.DataLoader(
                     dataset=image_dataset,
                     batch_size=self.cfg.data_loader.batch_size,
-                    shuffle=True,
+                    shuffle=False,
                     num_workers=self.cfg.data_loader.num_workers,
                     collate_fn=collate_image)
 
@@ -71,9 +72,9 @@ class Pipeline2D:
                   
 
                     pred = model(img)
-                    
+                    pred = torch.sigmoid(pred)
                     loss = loss_function(pred, semantic_label)
-                    
+            
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
@@ -86,11 +87,28 @@ class Pipeline2D:
                                 opts= dict(title = 'epoch%d scene%d'%(epoch, scene_id)),
                                 update = 'append')
                         else:
-                            print('epoch %d idx %d loss:%f '%(epoch, idx, loss.item()))
+                            if idx%100==0:# do some eval
+                                pred_label = torch.max(pred, dim=1).indices
 
+                                # label_color_img = label_to_color(pred_label[0].cpu().numpy())
 
+                                # label_color_img = Image.fromarray(label_color_img.astype(np.uint8))
+                                # label_color_img.save('/home/yanjie/zyj_test/virtual-multi-view/train.png')
+                                
+                                # gt_img = img[0].permute(1,2,0)
+                                # gt_img = Image.fromarray(gt_img.cpu().numpy().astype(np.uint8))
+                                # gt_img.save('/home/yanjie/zyj_test/virtual-multi-view/gt.png')
 
-            self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
+                                mean_iou = miou_2d(pred_label.cpu(), semantic_label.cpu())
+                                mean_iou = mean_iou.sum()/len(mean_iou)  # get an average of all imgs' miou
+                                print('Evaluation: epoch %d idx %d miou:%f'%(epoch, idx, mean_iou))
+                            print('epoch %d idx %d loss:%f'%(epoch, idx, loss.item()))
+                    
+                    
+            
+            is_save = False
+            if epoch%5==0 and is_save:
+                self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
 
 
     def evaluation(self):

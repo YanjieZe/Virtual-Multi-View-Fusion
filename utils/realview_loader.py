@@ -108,6 +108,9 @@ class ImageDataset(data.Dataset):
             # transforms.ToTensor(),  
             #transforms.Normalize(0., 1.),  # 标准化均值为0标准差为1
             ])
+        self.normalize = transforms.Compose([
+            transforms.Normalize(0., 1.)
+            ])
 
         self.mapping = self.get_vaild_class_mapping()
 
@@ -133,6 +136,7 @@ class ImageDataset(data.Dataset):
         if self.use_transform:
             img = self.transform(img)
         img = torch.from_numpy(np.array(img).astype(np.float32).transpose(2,0,1))
+        img = self.normalize(img)
         
         # read depth img
         depth_img = Image.open(depth_image_name)

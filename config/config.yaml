@@ -3,7 +3,7 @@ dataset:
   train_path: /data/ScanNetV2/scans
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
-  real_view: False # If this is ture, we use real view img. Otherwise, we use virtual view img.
+  real_view: True # If this is ture, we use real view img. Otherwise, we use virtual view img.
   image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
 
 
@@ -11,7 +11,7 @@ device: "cuda:1"
 
   
 model:
-  model_name: deeplabv3+ # choice: unet, deeplabv3+
+  model_name: unet # choice: unet, deeplabv3+
 
   # --------------if model is deeplabv3+------------------#
   backbone: xception # choice: resnet, drn, mobilenet, xception
@@ -21,7 +21,7 @@ model:
   pretrained_model_path: None
   # mobilenet: /home/yanjie/.cache/torch/hub/checkpoints/mobilenet_v2-6a65762b.pth
   num_classes: 20
-  output_stride: 16
+  output_stride: 8
   num_channels: 3
   save_model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/
 
@@ -31,14 +31,14 @@ evaluation:
 
 optimizer:
   name: Adam
-  learning_rate: 1e-5
-  weight_decay: 0.99
+  learning_rate: 1e-3
+  weight_decay: 0.0001
 
 data_loader:
-  batch_size: 4
+  batch_size: 2
   num_workers: 4
 
-num_epoch: 20
+num_epoch: 200
 
 render:
   img_size: 256

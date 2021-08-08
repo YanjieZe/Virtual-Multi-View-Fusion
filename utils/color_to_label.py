@@ -67,6 +67,11 @@ def projection(color):
     return gt_id
 
 
+def back_projection(gt_id):
+    color_palette = create_color_palette()
+    color = color_palette[valid_class_ids[gt_id]]
+    return color
+
 def color_to_label(gt_img:np.array):
     """
     Params: Ground Truth Color Img
@@ -74,9 +79,18 @@ def color_to_label(gt_img:np.array):
     Return: Label Img
     """
     label_img = np.array([[projection(gt_img[i][j]) for j in range(gt_img.shape[1])]for i in range(gt_img.shape[0])])
-    print(label_img.max())
     
     return label_img
+
+def label_to_color(label_img:np.array):
+    """
+    Params: Label img
+
+    Return: Color img
+    """
+    color_img = np.array([[back_projection(label_img[i][j]) for j in range(label_img.shape[1])]for i in range(label_img.shape[0])])
+
+    return color_img
 
 
 if __name__=='__main__':
