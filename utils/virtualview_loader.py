@@ -30,6 +30,8 @@ class VirtualviewScannetDataset(data.Dataset):
         
         self.mapping = self.get_vaild_class_mapping()
 
+        self.virtual_img_root =  cfg.dataset.virtual_img_root
+
 
     def __len__(self):
         return len(self.dir_list)
@@ -122,6 +124,7 @@ class VirtualviewScannetDataset(data.Dataset):
         for line in lines:
             if 'axisAlignment' in line:
                 axis_align_matrix = [float(x) for x in line.rstrip().strip('axisAlignment = ').split(' ')]
+
 
         # 3. Offset point cloud PLY file
         if axis_align_matrix != None:

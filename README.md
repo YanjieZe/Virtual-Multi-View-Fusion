@@ -11,6 +11,10 @@ trimesh, pypng
 
 
 **Third**, run the code.
+Create virtual view imgs for training.
+```
+python create_img.py
+```
 
 Train & evaluate 2D image (Change mode in the code).
 ```
@@ -22,10 +26,17 @@ Do inference on 3D points with 2D fusion.
 python pipeline_3d.py
 ```
 
-Create virtual view imgs.
-```
-python create_img.py
-```
+
+
+# TODO
+- [x] create img, label, depth from single point cloud
+
+- [x] pose selection for single point cloud (handcraft selectoion however)
+
+- [] a pipeline to train on generated 2d imgs
+
+- [] inference
+
 
 # 2D-3D Fusion Algorithm
 1. Use 3D point, extrinsic and intrinsic, and get project point $P_{proj}$. 

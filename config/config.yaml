@@ -3,8 +3,8 @@ dataset:
   train_path: /data/ScanNetV2/scans
   test_path: /data/ScanNetV2/scans_test
   label_map: /data/ScanNetV2/scannetv2-labels.combined.tsv
-  real_view: True # If this is ture, we use real view img. Otherwise, we use virtual view img.
-  image_num_percentage: 1.0 # from 0 to 1, to sample image from the image dataset
+  real_view: False # If this is ture, we use real view img. Otherwise, we use virtual view img.
+  virtual_img_root: ./virtual_img_dataset
 
 
 device: "cuda:1"
@@ -53,7 +53,6 @@ img_creator:
   fy: 200
   cx: 640
   cy: 680
-  img_num: 4 # number of imgs created for one scene
   width: 960
   height: 480
 

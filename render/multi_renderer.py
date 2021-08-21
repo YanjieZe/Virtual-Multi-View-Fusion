@@ -31,8 +31,9 @@ class MultiRenderer:
             vertices[:, 4] = plydata['vertex'].data['green']
             vertices[:, 5] = plydata['vertex'].data['blue']
         # not aligned
-        self.pc_xyz = vertices[:3] # decimetre(dm)
-        self.pc_rgb = vertices[3:]
+
+        self.pc_xyz = vertices[...,:3] # decimetre(dm)
+        self.pc_rgb = vertices[..., 3:]
 
         # range: x_min, x_max, y_min, y_max, z_min, z_max
         self.pc_range = self.get_3dminmax(self.pc_xyz)
@@ -51,12 +52,12 @@ class MultiRenderer:
         """
         Return: x_min, x_max, y_min, y_max, z_min, z_max
         """
-        x_min = np.min(pc_xyz[0])
-        x_max = np.max(pc_xyz[0])
-        y_min = np.min(pc_xyz[1])
-        y_max = np.max(pc_xyz[1])
-        z_min = np.min(pc_xyz[2])
-        z_max = np.max(pc_xyz[2])
+        x_min = np.min(pc_xyz[:, 0])
+        x_max = np.max(pc_xyz[:, 0])
+        y_min = np.min(pc_xyz[:, 1])
+        y_max = np.max(pc_xyz[:, 1])
+        z_min = np.min(pc_xyz[:, 2])
+        z_max = np.max(pc_xyz[:, 2])
         return [x_min,x_max,y_min,y_max,z_min,z_max]
 
 
@@ -65,19 +66,34 @@ class MultiRenderer:
         """
         Return: four top corners of the point cloud
         """
-        # TODO: check whether we need to divide 10
-        x_min = np.min(pc_xyz[0])/10
-        x_max = np.max(pc_xyz[0])/10
-        y_min = np.min(pc_xyz[1])/10
-        y_max = np.max(pc_xyz[1])/10
-        z_min = np.min(pc_xyz[2])/10
-        z_max = np.max(pc_xyz[2])/10
+
+        x_min = np.min(pc_xyz[:,0])
+        x_max = np.max(pc_xyz[:,0])
+        y_min = np.min(pc_xyz[:,1])
+        y_max = np.max(pc_xyz[:,1])
+        z_min = np.min(pc_xyz[:,2])
+        z_max = np.max(pc_xyz[:,2])
 
         available_poses = []
+
         # a pose is: x, y, z, roll, pitch, yaw
-        available_poses.append([1., 1., 2.9, 60, 0, 320])
-        
-        # TODO: add other poses. Currently only one pose.
+
+        roll = 55 # roll, pitch can be fixed
+        pitch = 0 
+
+        # available_poses.append([1., 1., 2.9, 60, 0, 320])
+
+        # pose selection 
+        # hand craft poses
+        available_poses.append([x_min+1, y_min+1, z_max, roll, pitch, -45])
+        available_poses.append([(x_max+x_min)/2, y_min+1, z_max, roll, pitch, 0])
+        available_poses.append([x_max-1, y_min+1, z_max, roll, pitch, 45])
+        available_poses.append([x_max-1, (y_min+y_max)/2, z_max, roll, pitch, 90])
+        available_poses.append([x_max-1, y_max-1, z_max, roll, pitch, 135])
+        available_poses.append([(x_max+x_min)/2, y_max-1, z_max, roll, pitch, 180])
+        available_poses.append([x_min+1, y_max-1, z_max, roll, pitch, 225])
+        available_poses.append([x_min+1, (y_max+y_min)/2, z_max, roll, pitch, 270])
+
 
         return available_poses
 
@@ -114,7 +130,8 @@ class MultiRenderer:
         label_img = color_to_label(color_img)
         return color_img, label_img
 
-    def render_some_images(self, img_num:int=4, width:int=640, height:int=480):
+
+    def render_some_images(self, width:int=640, height:int=480):
         """
         Params: number of imgs to need
         
@@ -134,7 +151,7 @@ class MultiRenderer:
         
 
         for pose in self.available_poses:
-           
+
             pose_matrix = self.get_camera_pose_matrix(x=pose[0],
                                                     y=pose[1],
                                                     z=pose[2],
@@ -145,7 +162,7 @@ class MultiRenderer:
             try: # if render fails, skip
                 color_img, depth_img = self.render_one_image(pose=pose_matrix, width=width, height=height)
                 color_label_img, label_img= self.render_one_groundtruth(pose=pose_matrix, width=width, height=height)
-
+                print('Rendering one image succeed. \n')
             except:
                 print('This pose fail to be rendered (x,y,z,roll,pitch,yaw):\n', pose)
                 continue
@@ -201,4 +218,3 @@ class MultiRenderer:
         self.intrinsic = IntrinsicMatrix
 
         return IntrinsicMatrix
- 

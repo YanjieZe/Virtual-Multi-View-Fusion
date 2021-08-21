@@ -25,6 +25,12 @@ class ImgCreator:
         image = Image.fromarray(img)
         image.save(save_path)
 
+    @staticmethod
+    def save_intrinsic(intrinsic:np.array, save_path:str):
+        """
+        Save intrinsic
+        """
+        np.savetxt(save_path, intrinsic)
 
     @staticmethod    
     def save_pose(pose:np.array, save_path:str):
@@ -69,18 +75,18 @@ class ImgCreator:
                                                                 cx=self.cfg.img_creator.cx, 
                                                                 cy=self.cfg.img_creator.cy)
         color_list, depth_list, pose_list, color_label_list, label_list = multi_renderer.render_some_images(
-                                                img_num=self.cfg.img_creator.img_num,
                                                 width=self.cfg.img_creator.width,
                                                 height=self.cfg.img_creator.height)
         
         if is_save:
             # create dir
-            scene_path = os.path.join(self.root_path,scene_name)
+            scene_path = os.path.join(self.root_path, scene_name)
             color_path = os.path.join(scene_path, 'color')
             depth_path = os.path.join(scene_path, 'depth')
             pose_path = os.path.join(scene_path, 'pose')
             color_label_path = os.path.join(scene_path, 'color_label')
             label_path = os.path.join(scene_path, 'label')
+            intrinsic_path = os.path.join(scene_path, 'intrinsic')
 
             if not os.path.exists(scene_path):
                 os.mkdir(scene_path)
@@ -94,6 +100,11 @@ class ImgCreator:
                 os.mkdir(color_label_path)
             if not os.path.exists(label_path):
                 os.mkdir(label_path)
+            if not os.path.exists(intrinsic_path):
+                os.mkdir(intrinsic_path)
+            if not os.path.isfile(os.path.join(intrinsic_path, 'intrinsic.txt')): 
+                self.save_intrinsic(intrinsic=intrinsic, save_path=os.path.join(intrinsic_path, 'intrinsic.txt'))
+                print('Intrinsic saved.')
 
             for i in range(len(color_list)):
                 self.save_color_img(img=color_list[i], save_path=os.path.join(color_path,'%u.jpg'%i))
