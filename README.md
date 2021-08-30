@@ -33,9 +33,15 @@ python pipeline_3d.py
 
 - [x] pose selection for single point cloud (handcraft selectoion however)
 
-- [] a pipeline to train on generated 2d imgs
+- [x] render a lot of images (but slowly)
 
-- [] inference
+- [x] virtual view loader
+
+- [x] a pipeline to train on generated 2d imgs
+
+- [] inference 
+
+- [] improve the img's quality
 
 
 # 2D-3D Fusion Algorithm

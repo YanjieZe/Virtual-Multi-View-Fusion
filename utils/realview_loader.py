@@ -43,7 +43,8 @@ def collate_image(batch):
 
             img = batch[0]['color_img'].unsqueeze(0)
             depth_img = batch[0]['depth_img'].unsqueeze(0)
-            instance_label = batch[0]['instance_label'].unsqueeze(0)
+            if batch[0]['instance_label'] is not None:
+                instance_label = batch[0]['instance_label'].unsqueeze(0)
             semantic_label = batch[0]['semantic_label'].unsqueeze(0)
             pose_matrix = batch[0]['pose_matrix'].unsqueeze(0)
 
@@ -51,7 +52,8 @@ def collate_image(batch):
 
             img = torch.vstack([img, batch[i]['color_img'].unsqueeze(0)])
             depth_img = torch.vstack([depth_img, batch[i]['depth_img'].unsqueeze(0)])
-            instance_label = torch.vstack([instance_label, batch[i]['instance_label'].unsqueeze(0)])
+            if batch[i]['instance_label'] is not None:
+                instance_label = torch.vstack([instance_label, batch[i]['instance_label'].unsqueeze(0)])
             semantic_label = torch.vstack([semantic_label, batch[i]['semantic_label'].unsqueeze(0)])
             pose_matrix = torch.vstack([pose_matrix, batch[i]['pose_matrix'].unsqueeze(0)])
     
@@ -215,6 +217,7 @@ class ImageDataset(data.Dataset):
             matrix = [[float(num) for num in line.split(' ')] for line in f]
         matrix = torch.from_numpy(np.array(matrix))
         return matrix 
+
 
 class RealviewScannetDataset(data.Dataset):
     """

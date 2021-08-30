@@ -24,6 +24,7 @@ class Pipeline3D:
         device = self.get_device()
 
         model_path = self.cfg.evaluation.model_path
+        
         model = self.get_model(model_path).to(device)
 
         scene_dataset = self.get_scene_dataset(
@@ -108,7 +109,8 @@ class Pipeline3D:
                 model.load_state_dict(torch.load(pretrain_path))
             
         # load self path
-        if not model_path is None:
+        if model_path is not None:
+
             model.load_state_dict(torch.load(model_path))
         
 
@@ -135,7 +137,7 @@ class Pipeline3D:
 @hydra.main(config_path='config', config_name='config')
 def main(cfg):
     ppl = Pipeline3D(cfg)
-    # ppl.inference()
+    ppl.inference()
 
 if __name__=='__main__':
     main()

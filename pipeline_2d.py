@@ -18,6 +18,8 @@ class Pipeline2D:
     """
     def __init__(self, cfg):
         self.cfg = cfg
+        print('Use visdom:', cfg.visdom.use)
+        print('Use virtual view:', not cfg.dataset.real_view)
     
     def train(self):   
         
@@ -106,9 +108,10 @@ class Pipeline2D:
                     
                     
             
-            is_save = False
-            if epoch%5==0 and is_save:
+            is_save = True
+            if epoch%10==0 and is_save:
                 self.save_model(model, self.cfg.model.model_name+'_epoch%d'%epoch)
+                print('Model in epoch%u saved. '%epoch)
 
 
     def evaluation(self):

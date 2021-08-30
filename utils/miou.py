@@ -42,7 +42,9 @@ def miou_2d(pred, label):
         Union = confusion_matrix.sum(axis=0) + confusion_matrix.sum(axis=1) - np.diag(confusion_matrix)
         
         IOU = Intersection / Union
-        IOU = IOU[IOU>=0.01] # filter some noise
+        # FIXME: can the filter be removed ?
+        IOU = IOU[IOU>=0.005] # filter some noise
+
         MIOU.append(np.nanmean(IOU)) # nanmean
     
     MIOU = np.array(MIOU)

@@ -12,8 +12,12 @@ class ImgCreator:
         self.cfg = cfg
         self.root_path = self.cfg.img_creator.save_path
         self.scene_dataset = VirtualviewScannetDataset(cfg, mode='train',use_transform=True)
+        self.length = len(self.scene_dataset)
         
     def fetch_one_scene(self, idx):
+        # # test
+        # imgset = self.scene_dataset[idx]['imgset'] # success
+        # import pdb; pdb.set_trace()
         return self.scene_dataset[idx]
 
 
@@ -115,13 +119,22 @@ class ImgCreator:
                 
     
 @hydra.main(config_path='config', config_name='config')
-def main(cfg):
+def demo(cfg):
     img_creator = ImgCreator(cfg)
     idx = 0
     one_scene = img_creator.fetch_one_scene(idx=idx)
     img_creator.create_imgs_from_one_scene(one_scene)
 
 
+@hydra.main(config_path='config', config_name='config')
+def create_a_lot(cfg):
+    img_creator = ImgCreator(cfg)
+    for idx in range(cfg.img_creator.scene_num):
+        one_scene = img_creator.fetch_one_scene(idx=idx)
+        img_creator.create_imgs_from_one_scene(one_scene)
+        print('Scene %u finished.'%i)
+    
 if __name__=='__main__':
-    main()
+    demo()
+    # create_a_lot()
 
