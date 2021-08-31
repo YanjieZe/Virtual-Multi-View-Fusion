@@ -86,6 +86,10 @@ def miou_3d(pred, label):
     Intersection = np.diag(confusion_matrix)
     Union = confusion_matrix.sum(axis=0) + confusion_matrix.sum(axis=1) - np.diag(confusion_matrix) 
     IOU = Intersection / Union
+
+    # FIXME: can we remove this filter
+    IOU = IOU[IOU>=0.005]
+    print('IOU class num: ', len(IOU))
     MIOU = np.nanmean(IOU)
     
     return MIOU

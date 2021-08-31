@@ -39,7 +39,9 @@ python pipeline_3d.py
 
 - [x] a pipeline to train on generated 2d imgs
 
-- [] inference 
+- [x] inference 
+
+- [] get 2d3d fusion right and useful
 
 - [] improve the img's quality
 

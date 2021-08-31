@@ -74,7 +74,7 @@ class Pipeline2D:
                   
 
                     pred = model(img)
-                    pred = torch.sigmoid(pred)
+                    pred = torch.softmax(pred,dim=1)
                     loss = loss_function(pred, semantic_label)
             
                     optimizer.zero_grad()
@@ -212,7 +212,7 @@ class Pipeline2D:
         if not model_path is None:
             model.load_state_dict(torch.load(model_path))
         
-
+        print('Model name:', self.cfg.model.model_name)
         return model
 
 

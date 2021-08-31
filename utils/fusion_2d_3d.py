@@ -27,7 +27,7 @@ class Fusioner:
     """
     Get Mesh, then project them into 2D image, and get feature
     """
-    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color=None, collection_method='average', use_gt=True):
+    def __init__(self, point_cloud, intrinsic_depth, intrinsic_color=None, collection_method='average', use_gt=False):
         self.pc = point_cloud.unsqueeze(2)
 
         self.feature_vector = None
@@ -46,7 +46,7 @@ class Fusioner:
         self.counting_vector = torch.zeros(self.pc.shape[0]) # used for couting img
 
 
-    def projection(self, depth_img,  pose_matrix, feature_img, color_img=None,threshold=1.0):
+    def projection(self, depth_img,  pose_matrix, feature_img, color_img=None, threshold=1.0):
         """
         Implementation of 2D-3D Fusion Algorithm.
         Params:
@@ -55,15 +55,15 @@ class Fusioner:
 
         FIXME: Get this function right
         """
-       
-        LargeNum = 500
+        
+        LargeNum = 5000
         device = depth_img.device
         
         # # one method 
-        extrinsic = torch.inverse(pose_matrix)
+        # extrinsic = torch.inverse(pose_matrix)
 
         # another method
-        # extrinsic = pose_matrix
+        extrinsic = pose_matrix
 
         # ------------------------------------------------------------------------# 
         
@@ -160,15 +160,25 @@ class Fusioner:
                 raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
        
         else: # use output of our model
-            if self.feature_vector is None:
-               self.feature_vector = torch.zeros([self.pc.shape[0], feature_img.shape[0]]).to(device)
+            
             if self.collection_method == 'average':
+                if self.feature_vector is None:
+                    self.feature_vector = torch.zeros([self.pc.shape[0], feature_img.shape[0]]).to(device)
                 feature_img = feature_img.permute(1,2,0)
                 if device!='cpu':
                     depth_mask = depth_mask.cpu()
                 # for i in tqdm(list(np.where(depth_mask)[0]),desc='Collect Features'):
                 for i in list(np.where(depth_mask)[0]):
                     self.feature_vector[i] += feature_img[project_points_depth[i][0], project_points_depth[i][1] ]
+                    self.counting_vector[i] += 1
+            elif self.collection_method == 'knn':
+                
+                if self.feature_vector is None:
+                    self.feature_vector = [ [] for i in range(self.pc.shape[0])]
+                if device!='cpu':
+                    depth_mask = depth_mask.cpu()
+                for i in list(np.where(depth_mask)[0]):
+                    self.feature_vector[i].append(feature_img[project_points_depth[i][0], project_points_depth[i][1]].max())
                     self.counting_vector[i] += 1
             else:
                 raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
@@ -189,6 +199,10 @@ class Fusioner:
                 return self.feature_vector.long()
             else:
                 return self.feature_vector
+        elif self.collection_method == 'knn':
+
+            self.feature_vector = [max(self.feature_vector[i], key=self.feature_vector[i].count)if self.feature_vector[i]!=[] else 0 for i in range(len(self.feature_vector))  ]
+            return self.feature_vector
         else:
             raise Exception('Collection Method Error: Not Support %s'%self.collection_method)
        

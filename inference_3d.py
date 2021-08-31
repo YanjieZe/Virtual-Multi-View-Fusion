@@ -15,6 +15,8 @@ class Pipeline3D:
     """
     def __init__(self, cfg):
         self.cfg = cfg
+        print('Use visdom:', cfg.visdom.use)
+        print('Use virtual view:', not cfg.dataset.real_view)
 
 
     def inference(self):
@@ -38,7 +40,11 @@ class Pipeline3D:
             image_dataset = single_scene_data['imgset']
             pc_xyz = single_scene_data['point_cloud_xyz'].to(device)
             pc_semantic_label = single_scene_data['semantic_label'].to(device)
-            intrinsic_depth = single_scene_data['intrinsic_depth'].to(device)
+            try:
+                intrinsic_depth = single_scene_data['intrinsic_depth'].to(device)
+            except:
+                intrinsic_depth = single_scene_data['intrinsic'].to(device)
+            
 
             # img loader
             image_dataloader = data.DataLoader(
@@ -49,13 +55,14 @@ class Pipeline3D:
                 collate_fn=collate_image)
 
             # a machine able to fuse 2d and 3d
+            collection_method = 'knn'
             fusion_machine = Fusioner(point_cloud=pc_xyz,
                                 intrinsic_depth=intrinsic_depth,
-                                collection_method='average',
+                                collection_method=collection_method, # average, knn
                                 use_gt=False)
 
             # collect features
-            process_bar = tqdm(total=len(image_dataset)) # show process
+            # process_bar = tqdm(total=len(image_dataset)) # show process
             batch_size = self.cfg.data_loader.batch_size
 
             for idx, batch in enumerate(image_dataloader): # loop over image
@@ -66,26 +73,33 @@ class Pipeline3D:
                     semantic_labels = batch['semantic_label'].to(device)
                     
                     preds = model(imgs)
-                
+                    
+                    preds = torch.softmax(preds, dim=1)
+
                     for i in range(imgs.shape[0]): #single data point
                         depth_img = depth_imgs[i].to(device)
                         img = imgs[i].to(device)
                         pose_matrix = pose_matrixs[i].to(device)
                         pred = preds[i].to(device)
                         
+                        
                         fusion_machine.projection(depth_img=depth_img,
                                                 pose_matrix=pose_matrix,
                                                 feature_img=pred,
-                                                threshold=5.0)
+                                                threshold=5)
                 
-                process_bar.update(batch_size)
-                
-            pc_features = fusion_machine.get_features()
-            pc_pred_label = torch.max(pc_features, dim=1).indices
+                # process_bar.update(batch_size)
+            if collection_method=='average':
+                pc_features = fusion_machine.get_features()
+                pc_pred_label = torch.max(pc_features, dim=1).indices
+            elif collection_method=='knn':
+                pc_features = fusion_machine.get_features()
+                pc_pred_label = torch.tensor(pc_features)
+
             # get MIOU
             MIOU = miou_3d(pc_pred_label, pc_semantic_label)
 
-            print(MIOU)
+            print("MIOU:", MIOU)
 
     def get_model(self, model_path=None):
         # load model
@@ -113,7 +127,7 @@ class Pipeline3D:
 
             model.load_state_dict(torch.load(model_path))
         
-
+        print('Model name:', self.cfg.model.model_name)
         return model
 
 

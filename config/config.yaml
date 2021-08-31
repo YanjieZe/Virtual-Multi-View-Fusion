@@ -27,7 +27,7 @@ model:
 
 
 evaluation: 
-  model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch19.pth
+  model_path: /home/yanjie/zyj_test/virtual-multi-view/checkpoint/deeplabv3+_epoch40.pth
 
 optimizer:
   name: Adam
